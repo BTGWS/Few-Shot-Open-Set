@@ -1,0 +1,27 @@
+--dataset gtsrb 
+--backbone conv_layers 
+--metric cosine 
+--recon ce 
+--trainer_type normal 
+--tester_type normal 
+--emb_enhance 
+--weighted_mean 
+--temperature 
+--conv_hid_layers 100 150 250
+--enc_conv_filters 7 4 4
+--dec_conv_filters 3 3 3
+--linear_embedding
+--linear_embedding_size 16000
+--z_dim 300
+--enc_stride 2
+--ab_module_layers 200 100
+--lambdas 1e-4 10 10
+--episodes_per_epoch_train 20
+--episodes_test 800
+--n 5
+--k 5
+--q 20
+--epoch 1000
+--lr 1e-4
+--img_cols 64
+--img_rows 64

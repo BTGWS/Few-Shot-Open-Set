@@ -1,0 +1,7 @@
+GTSRB 43 classes
+Load GTSRB train: 32189 samples
+GTSRB 43 classes
+Load GTSRB test: 12630 samples
+The loss for epoch 1 is 6550.030
+The loss for epoch 1 is 6268.118
+The loss for epoch 1 is 6115.295

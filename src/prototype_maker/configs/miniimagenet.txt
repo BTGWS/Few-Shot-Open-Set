@@ -1,0 +1,21 @@
+--dataset miniimagenet
+--backbone resnet18 
+--metric cosine 
+--recon l2 
+--trainer_type bifurcated 
+--tester_type bifurcated 
+--emb_enhance 
+--weighted_mean 
+--temperature 
+--z_dim 2048
+--ab_module_layers 200 100
+--lambdas 1e-4 1 10
+--episodes_per_epoch_train 50
+--episodes_test 600
+--n 5
+--k 5
+--q 30
+--epoch 1000
+--lr 1e-4
+--img_cols 84
+--img_rows 84
