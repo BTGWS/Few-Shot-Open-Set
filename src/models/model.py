@@ -6,6 +6,7 @@ from models.conv_net_encode import *
 from models.conv_net_decode import *
 from models.MLP_VAE import *
 from models.Resnet152 import *
+from models.Resnet12 import *
 import math
 
 
@@ -26,7 +27,7 @@ class Feature_extractor(nn.Module):
 
 class Encoder(nn.Module):
     def __init__(self, layers=[2, 2, 2, 2], norm_layer=None,
-        branch=False,backbone = 'conv_layers',mlp_inp_dim=512,mlp_hid_layers=[256,128,64], inp_channels=1, hid_dim=[64,64,64,64],conv_filters=[3,3,3,3],linear = False,
+        branch=False,backbone = 'conv_layers',mlp_inp_dim=512,mlp_hid_layers=[256,128,64], inp_channels=3, hid_dim=[64,64,64,64],conv_filters=[3,3,3,3],linear = False,
         linear_inp_siz=16000,stn = [[200,300,200], None, [150, 150, 150]],z_dim=300,stride=1):
         super(Encoder, self).__init__() 
         self.backbone = backbone
@@ -40,6 +41,8 @@ class Encoder(nn.Module):
             block = BasicBlockEnc
             layers = [2, 1, 1, 1]
             self.embed = ResNet18Enc(block, layers=layers, norm_layer=norm_layer,z_dim=z_dim, branch=branch)
+        elif(self.backbone == 'custome_resnet12'):
+            self.embed = build_resnet12(avg_pool=False, drop_rate=0.1, dropblock_size=5,branch=True,tau=100)
         elif(self.backbone == 'resnet152'):
             self.embed = ResNet_152_Encoder(CNN_embed_dim = z_dim)
         elif(self.backbone == 'MLP'):
@@ -122,8 +125,8 @@ class Proto_ND(nn.Module):
                                 conv_filters=dec_conv_filters,linear = linear,linear_inp_siz=linear_inp_siz,z_dim=z_dim,stride=1)
         
         self.nd_module =  Ab_module(inp_size=ab_inp_size, layers = ab_layers)
-        if init_weights:
-            self._initialize_weights()
+        # if init_weights:
+        #     self._initialize_weights()
 
     def feat_extractor(self,x):
         x = self.feat_ext_module(x)

@@ -76,7 +76,7 @@ class Spatial_X(nn.Module):
         return x
 
 class conv_net_encode(nn.Module):
-    def __init__(self, inp_channels=1, hid_dim=[64,64,64,64],conv_filters=[3,3,3,3],linear = False,linear_inp_siz=16000,z_dim=300,stride=1,
+    def __init__(self, inp_channels=3, hid_dim=[64,64,64,64],conv_filters=[3,3,3,3],linear = False,linear_inp_siz=16000,z_dim=300,stride=1,
         stn = [[200,300,200], None, [150, 150, 150]],init_weights=True):
         super().__init__()
         

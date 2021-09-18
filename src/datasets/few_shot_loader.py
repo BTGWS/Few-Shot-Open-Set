@@ -13,9 +13,9 @@ import torch.utils.data as data
 import torchvision
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
-# import torchnet as tnt
+import torchnet as tnt
 
-# import h5py
+
 
 from PIL import Image
 from PIL import ImageEnhance
@@ -269,10 +269,15 @@ class FewShotDataloader():
 
         tnt_dataset = tnt.dataset.ListDataset(
             elem_list=range(self.epoch_size), load=load_function)
+        # data_loader = tnt_dataset.parallel(
+        #     batch_size=self.batch_size,
+        #     num_workers=(0 if self.is_eval_mode else self.num_workers),
+        #     shuffle=(False if self.is_eval_mode else True))
+
         data_loader = tnt_dataset.parallel(
             batch_size=self.batch_size,
             num_workers=(0 if self.is_eval_mode else self.num_workers),
-            shuffle=(False if self.is_eval_mode else True))
+            shuffle=(False))
 
         return data_loader
 

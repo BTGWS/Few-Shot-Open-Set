@@ -1,0 +1,25 @@
+dataset: miniimagenet
+backbone: custom_resnet12 
+metric: cosine 
+recon: l2 
+trainer_type: proto 
+tester_type: proto 
+emb_enhance: True 
+weighted_mean: True 
+temperature: True 
+z_dim: 2048
+ab_module_layers: [200, 100]
+lambdas: [0.0001, 1, 10]
+episodes_per_epoch_train: 50
+episodes_test: 600
+n: 5
+k: 1
+q: 30
+epoch: 1000
+lr: 1e-3
+img_cols: 84
+img_rows: 84
+schedular: [20000,40000]
+rank: 0
+val_check: 10000
+model_id: 'new_sampler_test'

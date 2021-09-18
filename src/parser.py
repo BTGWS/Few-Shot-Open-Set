@@ -1,13 +1,15 @@
 from argparse import ArgumentParser
-
+from argparse import Namespace
+import yaml
 def get_args():
     parser = ArgumentParser(description='ReFOCS')
+    parser.add_argument('--config',help='configuration file.*yml',type=str,required=False,default='miniimagenet.yml')
     parser.add_argument('--seed',       type=int,   default=42,  help='Random seed')
     parser.add_argument('--dataset',    type=str,   default='gtsrb', help='dataset to use [gtsrb, gtsrb2TT100K, belga2flickr, belga2toplogo, miniimagenet]')
     parser.add_argument('--exp',        type=str,   default='exp_list',     help='training scenario')
-    parser.add_argument('--backbone',  type=str,   default='conv_layers',     help='backbone [conv_layers, MLP, resnet18, resnet12, resnet152]')
+    parser.add_argument('--backbone',  type=str,   default='conv_layers',     help='backbone [conv_layers, MLP, resnet18, resnet12, resnet152, custom_resnet12]')
     parser.add_argument('--metric',  type=str,   default='cosine',     help='distance metric, [euclidean,cosine] (default:cosine)')
-    parser.add_argument('--mdl_no', type=str,   default='1',     help='model save number and/or type')
+    parser.add_argument('--model_id', type=str,   default='1',     help='model save number and/or type')
     parser.add_argument('--entropy', type=bool,  default=False,  help='Open set entropy loss (default: False)')
     parser.add_argument('--recon', type=str,  default='ce',  help='VPE reconstruction loss (ce,l2,l1) (default: ce)')
     parser.add_argument('--trainer_type',    type=str,   default='normal', help='type of training mode [normal, ae, no_recon, bifurcated,proto]') 
@@ -41,9 +43,17 @@ def get_args():
     parser.add_argument('--n', type=int, default=5, help='Number of classes per episode of training (default: 5 way)')
     parser.add_argument('--epoch', type=int, default=30, help='Number of epochs (default: 30)')
     parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate (default: 1e-4)')
-
+    parser.add_argument('--output_dir',type=str,   default='/home/eegrad/snag/Desktop/fs_ood/src/models/output/',     help='output directory ')
     parser.add_argument('--img_cols',   type=int,   default=64,  help='resized image width')
     parser.add_argument('--img_rows',   type=int,   default=64,  help='resized image height')
-    parser.add_argument('--workers',    type=int,   default=4,   help='Data loader workers')
+    parser.add_argument('--workers',    type=int,   default=2,   help='Data loader workers')
     args = parser.parse_args()
+
+    opts = vars(args)
+    args = yaml.safe_load(open('configs/'+args.config))
+    opts.update(args)
+    args = Namespace(**opts)
+    args.lr = float(args.lr)
+    # args.lr_backbone = float(args.lr_backbone)
+    # args.weight_decay = float(args.weight_decay)
     return args

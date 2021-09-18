@@ -29,9 +29,8 @@ from train.pretrainer import *
 
 args = get_args()
 # print(args.recon)
-x = input('enter gpu id: ')
 
-device = torch.device('cuda:'+str(x) if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:'+str(args.rank) if torch.cuda.is_available() else 'cpu')
 random.seed(args.seed)
 torch.manual_seed(args.seed)
 
@@ -89,25 +88,21 @@ else:
         nExemplars=args.k, # num training examples per novel category
         nTestNovel=args.n * (args.q//2), # num test examples for all the novel categories
         nTestBase=0, # num test examples for all the base categories
-        batch_size=opt.episodes_per_epoch_train,
-        num_workers=args.workers,
-        epoch_size=opt.episodes_per_epoch_train * args.epoch)
+        batch_size=1,
+        num_workers=0, #args.workers,
+        epoch_size=args.episodes_per_epoch_train )# num of episodes per epoch
   testloader = FewShotDataloader(dataset=te_loader,
         nKnovel=args.n,
         nKbase=0,
         nExemplars=args.k, # num training examples per novel category
         nTestNovel=args.n * (args.q//2), # num test examples for all the novel categories
         nTestBase=0, # num test examples for all the base categories
-        batch_size=args.episodes_test,
+        batch_size=1,
         num_workers=0,
-        epoch_size=args.episodes_test * 1)
+        epoch_size=args.episodes_test )
 
 # data = next(iter(trainloader))
-for epoch in range(1, args.epoch + 1):
 
-        for i, batch in enumerate(tqdm(dloader_train(trainloader)), 1):
-            data_support, labels_support, data_query, labels_query, _, _ = [x.cuda() for x in batch]
-            print(i)
 # if(args.backbone == 'MLP'):
 #   ab_inp_size = args.mlp_hid_layers[-1] + 2*args.n
 # elif args.backbone == 'conv_layers' and not args.linear_embedding :
@@ -122,16 +117,16 @@ for epoch in range(1, args.epoch + 1):
 # else:
 #   ab_inp_size = args.z_dim + 2*args.n
 
-# if args.trainer_type == 'proto' or args.tester_type =='proto':
-#   model =  Encoder(backbone = args.backbone,mlp_inp_dim=args.mlp_inp_dim,mlp_hid_layers=args.mlp_hid_layers,inp_channels=data[0].shape[1],
-#         hid_dim=args.conv_hid_layers,conv_filters=args.enc_conv_filters,linear = args.linear_embedding,linear_inp_siz=args.linear_embedding_size,
-#         stn =stn,z_dim=args.z_dim,stride=args.enc_stride,branch=True)
-# else:
-#   model = Proto_ND(ab_inp_size=ab_inp_size,backbone = args.backbone,mlp_inp_dim=args.mlp_inp_dim,mlp_hid_layers=args.mlp_hid_layers,inp_channels=data[0].shape[1], 
-#       hid_dim=args.conv_hid_layers,enc_conv_filters=args.enc_conv_filters,dec_conv_filters=args.dec_conv_filters,linear = args.linear_embedding,
-#   		linear_inp_siz=args.linear_embedding_size,stride=args.enc_stride,outsize=[args.img_cols, args.img_rows], ab_layers = args.ab_module_layers,
-#       z_dim=args.z_dim, stn=stn)
-# # model = nn.DataParallel(model)
+if args.trainer_type == 'proto' or args.tester_type =='proto':
+  model =  Encoder(backbone = args.backbone,mlp_inp_dim=args.mlp_inp_dim,mlp_hid_layers=args.mlp_hid_layers,inp_channels=3,
+        hid_dim=args.conv_hid_layers,conv_filters=args.enc_conv_filters,linear = args.linear_embedding,linear_inp_siz=args.linear_embedding_size,
+        stn =stn,z_dim=args.z_dim,stride=args.enc_stride,branch=True)
+else:
+  model = Proto_ND(ab_inp_size=ab_inp_size,backbone = args.backbone,mlp_inp_dim=args.mlp_inp_dim,mlp_hid_layers=args.mlp_hid_layers,inp_channels=3, 
+      hid_dim=args.conv_hid_layers,enc_conv_filters=args.enc_conv_filters,dec_conv_filters=args.dec_conv_filters,linear = args.linear_embedding,
+  		linear_inp_siz=args.linear_embedding_size,stride=args.enc_stride,outsize=[args.img_cols, args.img_rows], ab_layers = args.ab_module_layers,
+      z_dim=args.z_dim, stn=stn)
+# model = nn.DataParallel(model)
 
 # if args.pretrain:
 #   m = '/home/snag005/Desktop/fs_ood/trial2/models/miniimagenet/pretrain/adam_200_18_lr1e3'
@@ -147,14 +142,14 @@ for epoch in range(1, args.epoch + 1):
 #       mod_dict[key]=weights
 #       count+=1
 #   model.enc_module.load_state_dict(mod_dict)
-#   # tr_loader = data_loader(root=data_path, resize=(args.img_rows, args.img_cols), mode='train', augment=0)
-#   # trainloader = DataLoader(tr_loader, batch_sampler=tr_sampler, num_workers=args.workers, shuffle=False, pin_memory=True)
+  # tr_loader = data_loader(root=data_path, resize=(args.img_rows, args.img_cols), mode='train', augment=0)
+  # trainloader = DataLoader(tr_loader, batch_sampler=tr_sampler, num_workers=args.workers, shuffle=False, pin_memory=True)
 
 
-# final_model,best_model = trainer(model=model,device=device,train_loader=trainloader,val_loader=testloader,tester=tester,opts=args)
-# # m = '/home/snag005/Desktop/fs_ood/trial2/models/miniimagenet/1shot_modeltemp_1000'
-# # best_model= torch.load(m)
-# # best_model.to(device)
+final_model,best_model = trainer(model=model,device=device,train_loader=trainloader,val_loader=testloader,tester=tester,opts=args)
+# m = '/home/snag005/Desktop/fs_ood/trial2/models/miniimagenet/1shot_modeltemp_1000'
+# best_model= torch.load(m)
+# best_model.to(device)
 
 
 # # final_model = model
@@ -174,7 +169,7 @@ for epoch in range(1, args.epoch + 1):
 # else:
 #   save_model = best_model
 
-# save_model_path = '/home/snag005/Desktop/fs_ood/src/models/output/'+args.dataset+'/'
+# save_model_path = '/home/eegrad/snag/Desktop/fs_ood/src/models/output/'+args.dataset+'/'
 # mdl_no = args.mdl_no
 # if os.path.exists(save_model_path):
 #   mdl_path = save_model_path +str(args.k)+'shot_model'+str(mdl_no)

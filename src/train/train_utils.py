@@ -30,19 +30,13 @@ def hot_encoding(labels,classes,device):
     labels_encoded[out_idx,:] = (1/classes.shape[0])*torch.ones((1,classes.shape[0])).to(device)
     return labels_encoded
 
-def loss_clf(logits,labels,classes,device):
-    soft_max = nn.Softmax(dim = 1)
-    log_softmax = nn.LogSoftmax(dim = 1)
+def loss_clf(logits,labels,device):
+
     ml,_ = torch.max(logits,dim=1)
     ml = ml.unsqueeze(dim=1)
     logits = logits - ml.repeat((1,logits.shape[1]))
-    pred = soft_max(logits)
-    label_encoded = hot_encoding(labels,classes,device)  
-    log_probabilities = log_softmax(logits)
-    # print(label_encoded.shape[0]//2)
-    # print(label_encoded[:label_encoded.shape[0]//2])
-    loss = torch.mean(-label_encoded[:label_encoded.shape[0]//2]*log_probabilities[:label_encoded.shape[0]//2])
-    return pred,loss
+    loss = F.cross_entropy(logits, labels,reduction='mean')
+    return logits.softmax(1),loss
 
 def loss_novel(logits,labels,device):
     BCE = nn.BCELoss()
@@ -221,3 +215,19 @@ class perceptualLoss(nn.Module):
         return loss
 
 
+class Logger(object):
+    def __init__(self, log_file):
+        self.file = log_file
+    def __call__(self, msg, init=False, quiet_ter=False ):
+        if not quiet_ter:
+            print(msg,end=" ")
+
+        if init:
+            try:
+                os.remove(self.file)
+            except:
+                pass
+        
+        with open(self.file, 'a') as log_file:
+                log_file.write('%s\n' % msg)
+        

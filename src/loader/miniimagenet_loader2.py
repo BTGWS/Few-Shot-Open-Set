@@ -24,7 +24,7 @@ from pdb import set_trace as breakpoint
 
 
 # Set the appropriate paths of the datasets here.
-_MINI_IMAGENET_DATASET_DIR = '/home/snag005/Desktop/fs_ood/src/datasets/db/miniimagenet2/' ## your miniimagenet folder
+_MINI_IMAGENET_DATASET_DIR = '/home/eegrad/snag/Desktop/fs_ood/src/datasets/db/miniimagenet2/' ## your miniimagenet folder
 
 
 def buildLabelIndex(labels):
