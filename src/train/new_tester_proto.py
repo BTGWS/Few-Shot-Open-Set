@@ -55,15 +55,27 @@ def tester(model,device,test_loader,opts):
     Accuracy = np.zeros(len(test_loader))
     c=0;
     with torch.no_grad():
-        for i, episode in enumerate(test_loader(1), 0):   
+        # for i, episode in enumerate(test_loader(1), 0):   
+        for i, episode in enumerate(test_loader, 0):
+            train_x, train_y,_ = episode
+            train_x = train_x.to(device)
+            train_y = train_y.to(device)
+            data_support = train_x[:num_classes*n_support]
+            labels_support = train_y[:num_classes*n_support]
+            classes_in,labels_support = class_renumb(labels_support)
+            queries_x = train_x[num_classes*n_support:]
+            queries_y = train_y[num_classes*n_support:]
+            data_query = torch.stack([q for i,q in enumerate(queries_x) if queries_y[i] in classes_in],dim=0)
+            labels_query = torch.stack([q for i,q in enumerate(queries_y) if queries_y[i] in classes_in],dim=0)
+            _,labels_query = class_renumb(labels_query)
             # c=c+1
             # print(c)    
-            data_support, labels_support, data_query, labels_query, _, _ = [x.to(device) for x in episode]
-            data_support, labels_support, data_query, labels_query, _, _ = [x.to(device) for x in episode]
-            data_support = data_support.squeeze(0)
-            labels_support = labels_support.squeeze(0)
-            data_query = data_query.squeeze(0)
-            labels_query = labels_query.squeeze(0)
+            # data_support, labels_support, data_query, labels_query, _, _ = [x.to(device) for x in episode]
+            # data_support, labels_support, data_query, labels_query, _, _ = [x.to(device) for x in episode]
+            # data_support = data_support.squeeze(0)
+            # labels_support = labels_support.squeeze(0)
+            # data_query = data_query.squeeze(0)
+            # labels_query = labels_query.squeeze(0)
             # if(len(test_y.shape)>1):
             #     test_y = torch.squeeze(test_y,dim=1)  
             # classes,test_y = class_scaler(test_y,n_support,n_query)

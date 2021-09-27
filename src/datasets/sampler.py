@@ -70,6 +70,9 @@ class ProtoBatchSampler(object):
                     idx_out = torch.randperm(self.numel_per_class[label_idx_o])[:1]
                     batch[k] = self.indices[label_idx_o][idx_out]
                     k = k + 1
+
+            batch = self._reshuffle(batch)
+
             yield batch    
 
     def __len__(self):
@@ -78,10 +81,29 @@ class ProtoBatchSampler(object):
         '''
         return self.iterations
 
+    def _reshuffle(self, batch):
+        '''
+        returns batch as [s_1,...,s_n,q_1+q_o,...,q_n+q_o]
+        '''
+        c_i = self.classes_in
+        s = self.sample_support
+        q = self.sample_query
+        batch_size = (s + 2*q) * c_i 
+        new_batch = torch.LongTensor(batch_size)
+        i = j = 0
+        for k in range(c_i):
+            new_batch[i:i+s] = batch[j:j+s]
+            i += s
+            j += (s + 2*q)
+        j = s
+        for k in range(c_i):
+            new_batch[i:i+2*q] = batch[j:j+2*q]
+            i += 2*q
+            j += (2*q + s)
+
+        return new_batch
 
 
 def softCrossEntropy(logits, target):
     logprobs = torch.nn.functional.log_softmax (logits, dim = 1)
     return  -(target * logprobs).sum() / input.shape[0]
-
-    

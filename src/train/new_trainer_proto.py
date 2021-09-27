@@ -39,6 +39,7 @@ def train(model,device,train_loader,val_loader,tester,opts):
     logger = Logger(opts.output_dir+'log_files/evaluation_logs.txt')
 
     optimizer = torch.optim.Adam((model.parameters()), lr=LR)
+    # optimizer = torch.optim.SGD((model.parameters()), lr=LR,momentum=0.9,nesterov=True,weight_decay=5e-4)
     if entropy:
         neg_entr = NegativeEntropy()
     counter = 0
@@ -46,12 +47,19 @@ def train(model,device,train_loader,val_loader,tester,opts):
        scheduler = MultiStepLR(optimizer, milestones=sch, gamma=0.1)
     for epoch in range(1,max_epoch+1):
         # loss_class = torch.nn.CrossEntropyLoss()
-        for i, episode in enumerate(train_loader(epoch), 0):
-            data_support, labels_support, data_query, labels_query, _, _ = [x.to(device) for x in episode]
-            data_support = data_support.squeeze(0)
-            labels_support = labels_support.squeeze(0)
-            data_query = data_query.squeeze(0)
-            labels_query = labels_query.squeeze(0)
+        # for i, episode in enumerate(train_loader(epoch), 0):
+        for i, episode in enumerate(train_loader, 0):
+            train_x, train_y,_ = episode
+            train_x = train_x.to(device)
+            train_y = train_y.to(device)
+            data_support = train_x[:num_classes*n_support]
+            labels_support = train_y[:num_classes*n_support]
+            classes_in,labels_support = class_renumb(labels_support)
+            queries_x = train_x[num_classes*n_support:]
+            queries_y = train_y[num_classes*n_support:]
+            data_query = torch.stack([q for i,q in enumerate(queries_x) if queries_y[i] in classes_in],dim=0)
+            labels_query = torch.stack([q for i,q in enumerate(queries_y) if queries_y[i] in classes_in],dim=0)
+            _,labels_query = class_renumb(labels_query)
             _,emb_support,_,_ = model(data_support)  
             support_one_hot_labels = torch.zeros((data_support.shape[0], num_classes),device=data_support.device)
             support_one_hot_labels = torch.tensor(support_one_hot_labels.scatter_(1, labels_support.view(-1,1), 1))
@@ -69,7 +77,7 @@ def train(model,device,train_loader,val_loader,tester,opts):
             optimizer.zero_grad()
             l_clf.backward()
             optimizer.step()
-            print('[%d/%d]  classification loss = %.3f ' %(epoch,max_epoch,l_clf))
+            print(opts.model_id+"======>"+'[%d/%d]  classification loss = %.3f ' %(epoch,max_epoch,l_clf))
             counter = counter + 1
             if counter % opts.val_check == 0  or counter == max_epoch*len(train_loader):
                 model.eval()

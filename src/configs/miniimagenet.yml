@@ -2,14 +2,14 @@ dataset: miniimagenet
 backbone: custom_resnet12 
 metric: cosine 
 recon: l2 
-trainer_type: proto 
-tester_type: proto 
+trainer_type: bifurcated 
+tester_type: bifurcated 
 emb_enhance: True 
 weighted_mean: True 
 temperature: True 
-z_dim: 2048
+z_dim: 640
 ab_module_layers: [200, 100]
-lambdas: [0.0001, 1, 10]
+lambdas: [0.01, 1, 10]
 episodes_per_epoch_train: 50
 episodes_test: 600
 n: 5
@@ -19,7 +19,11 @@ epoch: 1000
 lr: 1e-3
 img_cols: 84
 img_rows: 84
-schedular: [20000,40000]
-rank: 0
+schedular: [30000,45000]
+rank: 3
 val_check: 10000
-model_id: 'new_sampler_test'
+model_id: rel_net_resent12
+#relnet
+clf_mode: rel_net
+lr_decoder: 1e-4
+output_dir: /home/eegrad/snag/Desktop/fs_ood/src/models/output/

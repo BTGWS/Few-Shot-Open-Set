@@ -17,8 +17,10 @@ class ResizeConv2d(nn.Module):
     def forward(self, x):
         if self.final:
             x = F.interpolate(x, size=self.outsize, mode=self.mode)
+            print('---------',x.shape)
         else:
             x = F.interpolate(x, scale_factor=self.scale_factor, mode=self.mode)
+
         x = self.conv(x)
         return x
 
@@ -191,14 +193,16 @@ class BasicBlockDec(nn.Module):
         out = self.bn1(self.conv1(out))
         out += self.shortcut(x)
         out = torch.nn.functional.relu(out)
+        print(out.shape)
+        print('---------------')
         return out
 
 
 class ResNet18Dec(nn.Module):
 
-    def __init__(self, num_Blocks=[2,2,2,2], outsize=[84,84], z_dim=10,  nc=3):
+    def __init__(self, num_Blocks=[2,2,2,2], outsize=[84,84], z_dim=2048,  nc=3):
         super().__init__()
-        self.in_planes = 512
+        self.in_planes = z_dim
         self.outsize = outsize
 
         self.linear = nn.Linear(z_dim, 512)
@@ -226,7 +230,8 @@ class ResNet18Dec(nn.Module):
         x = self.layer3(x)
         x = self.layer2(x)
         x = self.layer1(x)
-        x = torch.sigmoid(self.conv1(x))
+        x = self.conv1(x)
+        x = torch.sigmoid(x)
         # x = torch.tanh(self.conv1(x))
         x = x.view(x.size(0), 3, self.outsize[0], self.outsize[1])
         return x

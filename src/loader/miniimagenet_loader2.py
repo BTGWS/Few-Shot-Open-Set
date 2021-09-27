@@ -50,8 +50,8 @@ def load_data(file):
         return data
 
 class MiniImageNet(data.Dataset):
-    def __init__(self, phase='train', do_not_use_random_transf=False):
-
+    def __init__(self, phase='train', img_size=[84,84],do_not_use_random_transf=False):
+        self.img_size =img_size
         self.base_folder = 'miniImagenet'
         #assert(phase=='train' or phase=='val' or phase=='test' or ph)
         self.phase = phase
@@ -150,22 +150,19 @@ class MiniImageNet(data.Dataset):
 
         if (self.phase=='test' or self.phase=='val') or (do_not_use_random_transf==True):
             self.transform = transforms.Compose([
-                transforms.RandomCrop(84, padding=8),
-                transforms.ToTensor(),
-                normalize
+                transforms.RandomCrop(self.img_size, padding=8),
+                transforms.ToTensor()
             ])
             # self.transform = transforms.Compose([
-            #     transforms.Resize((256 , 256)),
+            #     transforms.Resize(self.img_size),
             #     transforms.ToTensor(),
-            #     # normalize
             # ])
         else:
             self.transform = transforms.Compose([
-                transforms.RandomCrop(84, padding=8),
+                transforms.RandomCrop(self.img_size, padding=8),
                 transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4),
                 transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-                normalize
+                transforms.ToTensor()
             ])
             
     def __getitem__(self, index):
@@ -178,7 +175,7 @@ class MiniImageNet(data.Dataset):
         if self.transform is not None:
             img = self.transform(img)
             template = self.transform(template)
-        label = torch.tensor(label)
+        label = torch.tensor(label,dtype=torch.int64)
         return img, label, template
 
     def __len__(self):

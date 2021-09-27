@@ -9,15 +9,15 @@ import torch.nn.functional as F
 def loss_vpe(recon_x, x, mu, log_var,device,percept=None,recon='ce'):
     
     if recon == 'ce':
-        BCE = nn.BCELoss(reduction='sum')(recon_x, x)
+        BCE = F.binary_cross_entropy(recon_x, x,reduction='sum')
     elif recon == 'l1':
-        BCE = nn.L1Loss(reduction='sum')(recon_x, x)
+        BCE = F.l1_loss(recon_x, x,reduction='sum')
     elif recon == 'l2':
-        BCE = nn.MSELoss(reduction='sum')(recon_x, x)
+        BCE = F.mse_loss(recon_x, x,reduction='sum')
     else:
         BCE = percept(recon_x,x)
     KLD = -0.5* torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
-    l = (BCE + KLD)#*(1/recon_x.shape[0])
+    l = (BCE + KLD)*(1/recon_x.shape[0])
     return l
 def loss_recon(recon_x, x):
     l1_l =torch.nn.L1Loss(reduction='sum')
@@ -30,8 +30,12 @@ def hot_encoding(labels,classes,device):
     labels_encoded[out_idx,:] = (1/classes.shape[0])*torch.ones((1,classes.shape[0])).to(device)
     return labels_encoded
 
-def loss_clf(logits,labels,device):
-
+def loss_clf(logits,labels,device,clf_mode='cosine'):
+    if clf_mode == 'rel_net':
+        target_one_hot = torch.zeros((logits.shape[0], logits.shape[1]),device=logits.device) # Nq x C
+        target_one_hot_labels = torch.tensor(target_one_hot.scatter_(1, labels.view(-1,1), 1))
+        loss_clf = F.mse_loss(logits,target_one_hot_labels,reduction='mean')
+        return logits,loss_clf
     ml,_ = torch.max(logits,dim=1)
     ml = ml.unsqueeze(dim=1)
     logits = logits - ml.repeat((1,logits.shape[1]))
@@ -39,18 +43,18 @@ def loss_clf(logits,labels,device):
     return logits.softmax(1),loss
 
 def loss_novel(logits,labels,device):
-    BCE = nn.BCELoss()
-    logits = logits.type(torch.FloatTensor).to(device)
-    labels = labels.type(torch.FloatTensor).to(device)
-    loss = BCE(logits,labels)
+    # BCE = nn.BCELoss()
+    # logits = logits.type(torch.FloatTensor).to(device)
+    # labels = labels.type(torch.FloatTensor).to(device)
+    loss = F.binary_cross_entropy(logits, labels,reduction='mean')
     return loss
 
 def class_renumb(train_y):    
     classes = torch.unique(train_y)
     d = {classes[i].item():i for i in range(classes.shape[0])}
     for i in range(train_y.shape[0]):
-      train_y[i] = torch.tensor(d[train_y[i].item()])
-    classes = torch.unique(train_y)
+      train_y[i] = torch.tensor(d[train_y[i].item()]).to(train_y.device)
+    # classes = torch.unique(train_y)
     return classes,train_y
 
 def class_scaler(train_y,n,q):
@@ -69,27 +73,29 @@ def class_scaler(train_y,n,q):
     classes,train_y = class_renumb(train_y)
     return classes,train_y
 
-def proto_rectifier(emb_support,emb_proto_k,euc=False,wts=True):
+def proto_rectifier(emb_support,emb_proto_k,labels_support,n_support=5,num_classes=5,euc=False,wts=True):
     if(len(emb_proto_k.shape)>2 or len(emb_support.shape)>2):
       sys.exit('Error: embedding should be 1d !')
     # emb_proto_k = torch.reshape(emb_proto_k, (emb_proto_k.shape[0],emb_proto_k.shape[1]))
     # emb_support = torch.reshape(emb_support, (emb_support.shape[0],emb_support.shape[1]))
-    w_gen = nn.Softmax(dim = 0)
+    # w_gen = nn.Softmax(dim = 0)
     cos = nn.CosineSimilarity(dim=1, eps=1e-6)
+    support_one_hot_labels = torch.zeros((emb_support.shape[0], num_classes),device=emb_support.device)
+    support_one_hot_labels = torch.tensor(support_one_hot_labels.scatter_(1, labels_support.view(-1,1), 1))
     if wts:
-        # if euc:
-        #     d = -((emb_support - emb_proto_k)**2).sum(dim=1)
-        # else:
-            d = cos(emb_support,emb_proto_k)
+        
+        weights = torch.exp(cos(emb_support,emb_proto_k)) #Ns
+        weights = weights.unsqueeze(1).repeat(1,num_classes) #Ns x C
+        
+        weights_cls_wise = support_one_hot_labels*weights
+        normalize = weights_cls_wise.sum(dim=0) #C
+        normalize = normalize.unsqueeze(1).repeat(1,emb_support.shape[1])#C x dim
     else:
-        get_cuda_device = emb_support.get_device()
-        # d = torch.ones((emb_support.shape[0])).to(get_cuda_device)
-        proto_new = torch.mean(emb_support,dim=0,keepdim=True)
-        # print(proto_new.shape)
+
+        proto_new = (1/n_support)*torch.matmul(support_one_hot_labels.transpose(0,1), emb_support)
         return proto_new
-    weights = w_gen(d)
-    weights= torch.unsqueeze(weights,dim=0)
-    proto_new = torch.matmul(weights,emb_support)
+   
+    proto_new = (1/n_support)*(normalize**-1)*torch.matmul(weights_cls_wise.transpose(0,1),emb_support)
     return proto_new
     
 
@@ -115,17 +121,22 @@ def cosine_classifier(emb_query,real_proto,device,euc=False,test=False,tau=1):
     return logits
 
 def Recon_diff(recon_query,symbolic_proto,device):
-    class_num = symbolic_proto.shape[0]
-    l1_diff = torch.Tensor().to(device)
-    for i in range(0,class_num):
-        # tmp = torch.abs(recon_query - symbolic_proto[i,:,:,:].unsqueeze(dim=0)) #Nq x dim      
 
-        tmp = (recon_query - symbolic_proto[i,:].unsqueeze(dim=0)) #Nq x dim
-        tmp = tmp.pow(2)
+    diff = ((recon_query[:,None,...] - symbolic_proto)**2).flatten(2)
+    diff = diff.mean(-1) #Nq x C
 
-        tmp = tmp.mean(dim=list(range(1,len(tmp.shape)))).unsqueeze(dim=1)
-        l1_diff = torch.cat((l1_diff,tmp),dim=1)# Nq x C
-    return l1_diff
+    # class_num = symbolic_proto.shape[0]
+    # l1_diff = torch.Tensor().to(device)
+
+    # for i in range(0,class_num):
+    #     # tmp = torch.abs(recon_query - symbolic_proto[i,:,:,:].unsqueeze(dim=0)) #Nq x dim      
+
+    #     tmp = (recon_query - symbolic_proto[i,:].unsqueeze(dim=0)) #Nq x dim
+    #     tmp = tmp.pow(2)
+
+    #     tmp = tmp.mean(dim=list(range(1,len(tmp.shape)))).unsqueeze(dim=1)
+    #     l1_diff = torch.cat((l1_diff,tmp),dim=1)# Nq x C
+    return diff
 def write_gamma_value(gamma):
     gamma = gamma.unsqueeze(dim=1).detach().cpu().numpy()
     # gamma = gamma.tolist
@@ -134,22 +145,23 @@ def write_gamma_value(gamma):
             np.savetxt(txt_file, row)
 
 
-def emb_enhance(query,symbolic_proto,real_proto,device,emh=True):
-    class_num = symbolic_proto.shape[0]
+def emb_enhance(query,real_proto,device,emh=True):
+    num_classes = real_proto.shape[0]
+    Nq,dim = query.shape
     l1_diff = torch.Tensor().to(device)
     # print(real_proto.shape)
+    cos = nn.CosineSimilarity(dim=1, eps=1e-6)
     if not emh:
         return query
-    for i in range(0,class_num):
-        proto =  real_proto[i,:] #symbolic_proto[i,:]
-        tmp = torch.abs(query - proto) #Nq x dim         
-        tmp = tmp.mean(dim=[1]).unsqueeze(dim=1)        
+    for i in range(0,num_classes):
+        proto =  real_proto[i,:].unsqueeze(0) #symbolic_proto[i,:]
+        tmp = 1 - cos(query,proto)#Nq       
+        tmp = tmp.unsqueeze(dim=1)        
         l1_diff = torch.cat((l1_diff,tmp),dim=1)# Nq x C
-    min_diff,_ = torch.min(l1_diff,dim=1)
+    min_diff,_ = torch.min(l1_diff,dim=1) # Nq
     # write_gamma_value(min_diff)
-    min_diff = 1/(min_diff+10**(-24))
-    min_diff = min_diff.unsqueeze(1)
-    min_diff = min_diff.expand(min_diff.shape[0],query.shape[1])
+    min_diff = 1/(min_diff+1e-8)
+    min_diff = min_diff.unsqueeze(1).repeat(1,dim)
     new_query = min_diff*query
     return new_query
 

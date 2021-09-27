@@ -31,8 +31,10 @@ args = get_args()
 # print(args.recon)
 
 device = torch.device('cuda:'+str(args.rank) if torch.cuda.is_available() else 'cpu')
-random.seed(args.seed)
 torch.manual_seed(args.seed)
+torch.cuda.manual_seed(args.seed)
+np.random.seed(args.seed )
+random.seed(args.seed)
 
 if args.stn :
   stn = [[200,300,200], None, [150, 150, 150]]
@@ -73,49 +75,49 @@ else:
     val_loader = data_loader(data_path, args.exp, is_transform=True, split='val', img_size=(args.img_rows, args.img_cols), augmentations=data_aug_te)
     te_loader = data_loader(data_path, args.exp, is_transform=True, split='test', img_size=(args.img_rows, args.img_cols), augmentations=data_aug_te)
 
-if args.dataset != 'miniimagenet':
-    tr_sampler = ProtoBatchSampler(tr_loader.targets, iterations=args.episodes_per_epoch_train, num_support=args.k, num_query=args.q//2, classes_in=args.n, classes_out=args.n)
-    # val_sampler = ProtoBatchSampler(val_loader.targets, iterations=args.episodes_val, num_support=args.k, num_query=args.q//2, classes_in=args.n, classes_out=args.n)
-    te_sampler = ProtoBatchSampler(te_loader.targets, iterations=args.episodes_test, num_support=args.k, num_query=args.q//2, classes_in=args.n, classes_out=args.n)
+# if args.dataset == 'miniimagenet':
+tr_sampler = ProtoBatchSampler(tr_loader.targets, iterations=args.episodes_per_epoch_train, num_support=args.k, num_query=args.q//2, classes_in=args.n, classes_out=args.n)
+# val_sampler = ProtoBatchSampler(val_loader.targets, iterations=args.episodes_val, num_support=args.k, num_query=args.q//2, classes_in=args.n, classes_out=args.n)
+te_sampler = ProtoBatchSampler(te_loader.targets, iterations=args.episodes_test, num_support=args.k, num_query=args.q//2, classes_in=args.n, classes_out=args.n)
 
-    trainloader = DataLoader(tr_loader, batch_sampler=tr_sampler, num_workers=args.workers, shuffle=False, pin_memory=True)
-    # valloader = DataLoader(val_loader, batch_sampler=val_sampler, num_workers=args.workers, shuffle=False, pin_memory=True)
-    testloader = DataLoader(te_loader, batch_sampler=te_sampler, num_workers=args.workers, shuffle=False, pin_memory=True)
-else:
-  trainloader = FewShotDataloader(dataset=tr_loader,
-        nKnovel=args.n,
-        nKbase=0,
-        nExemplars=args.k, # num training examples per novel category
-        nTestNovel=args.n * (args.q//2), # num test examples for all the novel categories
-        nTestBase=0, # num test examples for all the base categories
-        batch_size=1,
-        num_workers=0, #args.workers,
-        epoch_size=args.episodes_per_epoch_train )# num of episodes per epoch
-  testloader = FewShotDataloader(dataset=te_loader,
-        nKnovel=args.n,
-        nKbase=0,
-        nExemplars=args.k, # num training examples per novel category
-        nTestNovel=args.n * (args.q//2), # num test examples for all the novel categories
-        nTestBase=0, # num test examples for all the base categories
-        batch_size=1,
-        num_workers=0,
-        epoch_size=args.episodes_test )
+trainloader = DataLoader(tr_loader, batch_sampler=tr_sampler, num_workers=args.workers, shuffle=False, pin_memory=True)
+# valloader = DataLoader(val_loader, batch_sampler=val_sampler, num_workers=args.workers, shuffle=False, pin_memory=True)
+testloader = DataLoader(te_loader, batch_sampler=te_sampler, num_workers=args.workers, shuffle=False, pin_memory=True)
+# else:
+#   trainloader = FewShotDataloader(dataset=tr_loader,
+#         nKnovel=args.n,
+#         nKbase=0,
+#         nExemplars=args.k, # num training examples per novel category
+#         nTestNovel=args.n * (args.q//2), # num test examples for all the novel categories
+#         nTestBase=0, # num test examples for all the base categories
+#         batch_size=1,
+#         num_workers=0, #args.workers,
+#         epoch_size=args.episodes_per_epoch_train )# num of episodes per epoch
+#   testloader = FewShotDataloader(dataset=te_loader,
+#         nKnovel=args.n,
+#         nKbase=0,
+#         nExemplars=args.k, # num training examples per novel category
+#         nTestNovel=args.n * (args.q//2), # num test examples for all the novel categories
+#         nTestBase=0, # num test examples for all the base categories
+#         batch_size=1,
+#         num_workers=0,
+#         epoch_size=args.episodes_test )
 
 # data = next(iter(trainloader))
 
-# if(args.backbone == 'MLP'):
-#   ab_inp_size = args.mlp_hid_layers[-1] + 2*args.n
-# elif args.backbone == 'conv_layers' and not args.linear_embedding :
-#   enc =  Encoder(inp_channels=data[0].shape[1],hid_dim=args.conv_hid_layers,conv_filters=args.enc_conv_filters,stride=args.enc_stride,stn=stn)
-#   data_emb,_,_,_ = enc(data[0])
-#   data_emb = torch.flatten(data_emb,start_dim=1)
-#   ab_inp_size = data_emb.shape[1]+2*args.n
-# elif args.trainer_type == 'no_recon' or args.trainer_type == 'no_clf' or args.trainer_type == 'bifurcated_no_clf':
-#   ab_inp_size = args.z_dim + args.n
-# elif args.trainer_type == 'no_embedding' or args.trainer_type =='bifurcated_no_embedding':
-#   ab_inp_size = 2*args.n
-# else:
-#   ab_inp_size = args.z_dim + 2*args.n
+if(args.backbone == 'MLP'):
+  ab_inp_size = args.mlp_hid_layers[-1] + 2*args.n
+elif args.backbone == 'conv_layers' and not args.linear_embedding :
+  enc =  Encoder(inp_channels=data[0].shape[1],hid_dim=args.conv_hid_layers,conv_filters=args.enc_conv_filters,stride=args.enc_stride,stn=stn)
+  data_emb,_,_,_ = enc(data[0])
+  data_emb = torch.flatten(data_emb,start_dim=1)
+  ab_inp_size = data_emb.shape[1]+2*args.n
+elif args.trainer_type == 'no_recon' or args.trainer_type == 'no_clf' or args.trainer_type == 'bifurcated_no_clf':
+  ab_inp_size = args.z_dim + args.n
+elif args.trainer_type == 'no_embedding' or args.trainer_type =='bifurcated_no_embedding':
+  ab_inp_size = 2*args.n
+else:
+  ab_inp_size = args.z_dim + 2*args.n
 
 if args.trainer_type == 'proto' or args.tester_type =='proto':
   model =  Encoder(backbone = args.backbone,mlp_inp_dim=args.mlp_inp_dim,mlp_hid_layers=args.mlp_hid_layers,inp_channels=3,
@@ -145,8 +147,17 @@ else:
   # tr_loader = data_loader(root=data_path, resize=(args.img_rows, args.img_cols), mode='train', augment=0)
   # trainloader = DataLoader(tr_loader, batch_sampler=tr_sampler, num_workers=args.workers, shuffle=False, pin_memory=True)
 
-
+torch.autograd.set_detect_anomaly(True)
 final_model,best_model = trainer(model=model,device=device,train_loader=trainloader,val_loader=testloader,tester=tester,opts=args)
+final_model = final_model.to('cpu')
+final_model = best_model.to('cpu')
+save_model_path = args.output_dir+args.dataset+'/'+str(args.k)+'shot_model_'+args.model_id+'/'
+os.mkdir(save_model_path)
+
+torch.save({
+            'best_model_state_dict': best_model.state_dict(),
+            'final_model_state_dict': model.state_dict()
+            }, save_model_path+'models.pth')
 # m = '/home/snag005/Desktop/fs_ood/trial2/models/miniimagenet/1shot_modeltemp_1000'
 # best_model= torch.load(m)
 # best_model.to(device)

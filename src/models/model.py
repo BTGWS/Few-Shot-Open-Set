@@ -6,7 +6,7 @@ from models.conv_net_encode import *
 from models.conv_net_decode import *
 from models.MLP_VAE import *
 from models.Resnet152 import *
-from models.Resnet12 import *
+from models.Resnet12 import build_resnet12,build_resnet12dec
 import math
 
 
@@ -41,8 +41,8 @@ class Encoder(nn.Module):
             block = BasicBlockEnc
             layers = [2, 1, 1, 1]
             self.embed = ResNet18Enc(block, layers=layers, norm_layer=norm_layer,z_dim=z_dim, branch=branch)
-        elif(self.backbone == 'custome_resnet12'):
-            self.embed = build_resnet12(avg_pool=False, drop_rate=0.1, dropblock_size=5,branch=True,tau=100)
+        elif(self.backbone == 'custom_resnet12'):
+            self.embed = build_resnet12(avg_pool=True, drop_rate=0.1, dropblock_size=5,branch=True,tau=100.0)
         elif(self.backbone == 'resnet152'):
             self.embed = ResNet_152_Encoder(CNN_embed_dim = z_dim)
         elif(self.backbone == 'MLP'):
@@ -61,6 +61,7 @@ class Encoder(nn.Module):
         mu = mu.view(mu.size(0),-1)
         log_var = log_var.view(log_var.size(0),-1)
         z = self.sampling(mu, log_var)
+        z = z.view(z.size(0),-1)
         return z,mu,log_var,tau
 
 class Decoder(nn.Module):
@@ -71,8 +72,10 @@ class Decoder(nn.Module):
         if(self.backbone == 'resnet18'):
             self.decode = ResNet18Dec(num_Blocks=layers,z_dim=z_dim,outsize=outsize,nc=inp_channels)
         elif(self.backbone == 'resnet12'):
-            layers = [2,1,1,1]
+            layers = [1,1,1,1]
             self.decode = ResNet18Dec(num_Blocks=layers,z_dim=z_dim,outsize=outsize,nc=inp_channels)
+        elif self.backbone == 'custom_resnet12':
+            self.decode = build_resnet12dec(avg_pool=False, drop_rate=0.1, dropblock_size=5,outsize=outsize,z_dim=z_dim)
         elif(self.backbone == 'resnet152'):
             self.decode = ResNet_152_Decoder(CNN_embed_dim=z_dim,out_c=inp_channels, out_size=outsize)
         elif(self.backbone =='MLP'):
@@ -84,6 +87,27 @@ class Decoder(nn.Module):
     def forward(self, x):        
         img = self.decode(x)
         return img
+
+class Rel_net_detect(nn.Module):
+    def __init__(self, z_dim):
+        super(Rel_net_detect, self).__init__()
+        
+        self.rel_fc1 = nn.Linear(2*z_dim,z_dim)
+        self.rel_fc2 = nn.Linear(z_dim,1)
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                n = m.weight.size(1)
+                m.weight.data.normal_(0, 0.01)
+                m.bias.data = torch.ones(m.bias.data.size())
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+    def forward(self,x):
+
+        x = F.relu(self.rel_fc1(x))
+        x = torch.sigmoid(self.rel_fc2(x))
+        return x
 
 class Ab_module(nn.Module):
     def __init__(self, inp_size, layers = [256,256]):
@@ -101,7 +125,14 @@ class Ab_module(nn.Module):
         detector.append(nn.Linear(layers[h],1))
         detector.append(nn.Sigmoid())
         self.detector = nn.Sequential( *detector )
-        
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                n = m.weight.size(1)
+                m.weight.data.normal_(0, 0.01)
+                m.bias.data = torch.ones(m.bias.data.size())
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
     def forward(self,x):
         out = self.detector(x)
         return out
@@ -111,9 +142,10 @@ class Proto_ND(nn.Module):
     def __init__(self,ab_inp_size, resnet_layers=[2, 2, 2, 2], norm_layer=None,
         branch=True,backbone='conv_layers',mlp_inp_dim=512,mlp_hid_layers=[256,128,64],inp_channels=1, hid_dim=[64,64,64,64],enc_conv_filters=[3,3,3,3],
         dec_conv_filters=[3,3,3,3],linear = False,linear_inp_siz=16000,stride=1, outsize=[64,64],stn = [[200,300,200], None, [150, 150, 150]],
-        ab_layers = [256,256],z_dim=300,init_weights=True ):
+        ab_layers = [256,256],z_dim=300,init_weights=True,clf_mode='cosine' ):
 
         super().__init__()
+        self.clf_mode = clf_mode
         self.backbone = backbone
         self.feat_ext_module = Feature_extractor()
         self.enc_module = Encoder(layers=resnet_layers, norm_layer=norm_layer,
@@ -125,12 +157,16 @@ class Proto_ND(nn.Module):
                                 conv_filters=dec_conv_filters,linear = linear,linear_inp_siz=linear_inp_siz,z_dim=z_dim,stride=1)
         
         self.nd_module =  Ab_module(inp_size=ab_inp_size, layers = ab_layers)
+        self.classifier = Rel_net_detect(z_dim=z_dim)
         # if init_weights:
         #     self._initialize_weights()
 
     def feat_extractor(self,x):
         x = self.feat_ext_module(x)
         return x
+
+    def classify(self,x):
+        return self.classifier(x)
 
     def encode(self,x):
         z,mu,log_var,tau = self.enc_module(x)

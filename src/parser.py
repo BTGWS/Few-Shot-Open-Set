@@ -54,6 +54,8 @@ def get_args():
     opts.update(args)
     args = Namespace(**opts)
     args.lr = float(args.lr)
+    if args.lr_decoder is not None:
+        args.lr_decoder = float(args.lr_decoder)
     # args.lr_backbone = float(args.lr_backbone)
     # args.weight_decay = float(args.weight_decay)
     return args

@@ -81,19 +81,6 @@ testloader = DataLoader(te_loader, batch_sampler=te_sampler, num_workers=args.wo
 
 data = next(iter(trainloader))
 
-if(args.backbone == 'MLP'):
-  ab_inp_size = args.mlp_hid_layers[-1] + 2*args.n
-elif args.backbone == 'conv_layers' and not args.linear_embedding :
-  enc =  Encoder(inp_channels=data[0].shape[1],hid_dim=args.conv_hid_layers,conv_filters=args.enc_conv_filters,stride=args.enc_stride,stn=stn)
-  data_emb,_,_,_ = enc(data[0])
-  data_emb = torch.flatten(data_emb,start_dim=1)
-  ab_inp_size = data_emb.shape[1]+2*args.n
-elif args.trainer_type == 'no_recon' or args.trainer_type == 'no_clf' or args.trainer_type == 'bifurcated_no_clf':
-  ab_inp_size = args.z_dim + args.n
-elif args.trainer_type == 'no_embedding' or args.trainer_type =='bifurcated_no_embedding':
-  ab_inp_size = 2*args.n
-else:
-  ab_inp_size = args.z_dim + 2*args.n
 
 
 model =  Encoder(backbone = args.backbone,mlp_inp_dim=args.mlp_inp_dim,mlp_hid_layers=args.mlp_hid_layers,inp_channels=data[0].shape[1],
