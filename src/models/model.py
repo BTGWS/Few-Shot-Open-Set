@@ -144,7 +144,7 @@ class Proto_ND(nn.Module):
         dec_conv_filters=[3,3,3,3],linear = False,linear_inp_siz=16000,stride=1, outsize=[64,64],stn = [[200,300,200], None, [150, 150, 150]],
         ab_layers = [256,256],z_dim=300,init_weights=True,clf_mode='cosine' ):
 
-        super().__init__()
+        super(Proto_ND,self).__init__()
         self.clf_mode = clf_mode
         self.backbone = backbone
         self.feat_ext_module = Feature_extractor()

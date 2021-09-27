@@ -95,7 +95,8 @@ def train(model,device,train_loader,val_loader,tester,opts):
             emb_query = emb_data[num_classes*n_support:]
             
             real_proto_k = proto_rectifier(emb_support=emb_support,emb_proto_k=emb_exemplar_sup,labels_support=labels_support,n_support=n_support,num_classes=num_classes,euc=euc,wts=wts)
-            emb_query = emb_enhance(emb_query,real_proto_k,device,emh=emh)
+            if opts.pre_emh:
+                emb_query = emb_enhance(emb_query,real_proto_k,device,emh=emh)
             if opts.clf_mode == 'rel_net':
                 emb_query_ = emb_query.unsqueeze(0).repeat(num_classes,1,1)#C x Nq x dim
                 emb_query_ = emb_query_.transpose(0,1) #Nq x C x dim
@@ -107,6 +108,8 @@ def train(model,device,train_loader,val_loader,tester,opts):
                         logits = cosine_classifier(emb_query,real_proto_k,device,euc=euc,tau=tau)
                 else:
                         logits = cosine_classifier(emb_query,real_proto_k,device,euc=euc)
+            if not opts.pre_emh:
+                emb_query = emb_enhance(emb_query,real_proto_k,device,emh=emh)
             logits_in = logits[idx_query_in]
             pred,l_clf = loss_clf(logits_in,labels_query_in,device,opts.clf_mode)
             
@@ -124,14 +127,14 @@ def train(model,device,train_loader,val_loader,tester,opts):
                 if Accuracy > best_accuracy :
                     eqn = '>'
                 
-                    msg = opts.model_id+"======>"+'At Epoch [{}]/[{}] \t\tCurrent Acc is {:.5f} {:s}  previous best Acc is {:.5f} '.format(epoch,
+                    msg = str(n_support)+'_shot_'+opts.model_id+"======>"+'At Epoch [{}]/[{}] \t\tCurrent Acc is {:.5f} {:s}  previous best Acc is {:.5f} '.format(epoch,
                         max_epoch,Accuracy, eqn, best_accuracy)
                     best_accuracy = Accuracy
                     best_model = model
                 else:
                     eqn = '<'
                 
-                    msg = opts.model_id+"======>"+'At Epoch [{}]/[{}] \t\tCurrent Acc is {:.5f} {:s}  previous best Acc is {:.5f} '.format(epoch,
+                    msg = str(n_support)+'_shot_'+opts.model_id+"======>"+'At Epoch [{}]/[{}] \t\tCurrent Acc is {:.5f} {:s}  previous best Acc is {:.5f} '.format(epoch,
                         max_epoch,Accuracy, eqn, best_accuracy)
                     # best_auroc = Au_ROC
                 logger(msg)
@@ -139,7 +142,7 @@ def train(model,device,train_loader,val_loader,tester,opts):
     model = best_model
        
     for n,p in model.named_parameters():
-          if 'classifier' in n or 'enc_module' in n or 'feat_ext_module' in n:
+          if 'dec_module' in n or 'nd_module' in n:
             p.requires_grad = False
           else:
             p.requires_grad = True
@@ -216,8 +219,8 @@ def train(model,device,train_loader,val_loader,tester,opts):
             l_vpe = (1/(exemplar_sup.shape[0]+exemplar_query_in.shape[0]))*(l_vpe_s+l_vpe_q)
 
             real_proto_k = proto_rectifier(emb_support=emb_support,emb_proto_k=emb_exemplar_sup,labels_support=labels_support,n_support=n_support,num_classes=num_classes,euc=euc,wts=wts)
-            
-            emb_query = emb_enhance(emb_query,real_proto_k,device,emh=emh)
+            if opts.pre_emh:
+                emb_query = emb_enhance(emb_query,real_proto_k,device,emh=emh)
             if opts.clf_mode == 'rel_net':
                 emb_query_ = emb_query.unsqueeze(0).repeat(num_classes,1,1)#C x Nq x dim
                 emb_query_ = emb_query_.transpose(0,1) #Nq x C x dim
@@ -232,7 +235,9 @@ def train(model,device,train_loader,val_loader,tester,opts):
                 else:
                         logits = cosine_classifier(emb_query,real_proto_k,device,euc=euc)
                         pred = logits.softmax(-1)
-            
+            if not opts.pre_emh:
+                emb_query = emb_enhance(emb_query,real_proto_k,device,emh=emh)
+
             k_exemplar = torch.stack([exemplar_sup[labels_support==i][0] for i in range(num_classes)],dim=0)
             diff_metric = Recon_diff(recon_q,k_exemplar,device)
             ND_input = torch.cat((pred,diff_metric,emb_query),dim=1) # Nq x dim+2C 
@@ -246,7 +251,8 @@ def train(model,device,train_loader,val_loader,tester,opts):
             optimizer.step()  
 
             counter = counter + 1    
-            print(str(n_support)+'_shot_'+opts.model_id+"======>"+'[%d/%d] recon loss = %.3f,novelty detection loss = %.3f'%(epoch,max_epoch,lambdas[0]*l_vpe,lambdas[2]*l_nov))         
+            print(str(n_support)+'_shot_'+opts.model_id+"======>"+'[%d/%d] recon loss = %.3f,novelty detection loss = %.3f'\
+                %(epoch,max_epoch,lambdas[0]*l_vpe,lambdas[2]*l_nov))         
             if len(sch) != 0:
                scheduler.step(counter)  
             if counter % opts.val_check == 0  or counter == max_epoch*len(train_loader):
@@ -255,14 +261,14 @@ def train(model,device,train_loader,val_loader,tester,opts):
                 if Au_ROC > best_auroc :
                     eqn = '>'
                 
-                    msg = opts.model_id+"======>"+'At Epoch [{}]/[{}] \t\tCurrent Acc is {:.5f} + {:.5f} and current Auroc is {:.5f} + {:.5f} \
+                    msg = str(n_support)+'_shot_'+opts.model_id+"======>"+'At Epoch [{}]/[{}] \t\tCurrent Acc is {:.5f} + {:.5f} and current Auroc is {:.5f} + {:.5f} \
                      {:s} previous best Auroc is {:.5f} '.format(epoch,max_epoch,Accuracy,Accuracy_std,Au_ROC,Au_ROC_std, eqn, best_auroc)
                     best_auroc = Au_ROC
                     best_model = model
                 else:
                     eqn = '<'
                 
-                    msg = opts.model_id+"======>"+'At Epoch [{}]/[{}] \t\tCurrent Acc is {:.5f} + {:.5f} and current Auroc is {:.5f} + {:.5f} \
+                    msg = str(n_support)+'_shot_'+opts.model_id+"======>"+'At Epoch [{}]/[{}] \t\tCurrent Acc is {:.5f} + {:.5f} and current Auroc is {:.5f} + {:.5f} \
                      {:s} previous best Auroc is {:.5f} '.format(epoch,max_epoch,Accuracy,Accuracy_std,Au_ROC,Au_ROC_std, eqn, best_auroc)
                     # best_auroc = Au_ROC
                 logger(msg)

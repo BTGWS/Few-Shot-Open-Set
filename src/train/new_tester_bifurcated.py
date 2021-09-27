@@ -72,7 +72,8 @@ def tester(model,device,test_loader,opts):
             real_proto_k = proto_rectifier(emb_support=emb_support,emb_proto_k=emb_exemplar_sup,labels_support=labels_support,n_support=n_support,num_classes=num_classes,euc=euc,wts=wts)
             
             
-            emb_query = emb_enhance(emb_query,real_proto_k,device,emh=emh)
+            if opts.pre_emh:
+                emb_query = emb_enhance(emb_query,real_proto_k,device,emh=emh)
             if opts.clf_mode == 'rel_net':
                 emb_query_ = emb_query.unsqueeze(0).repeat(num_classes,1,1)#C x Nq x dim
                 emb_query_ = emb_query_.transpose(0,1) #Nq x C x dim
@@ -87,6 +88,8 @@ def tester(model,device,test_loader,opts):
                 else:
                         logits = cosine_classifier(emb_query,real_proto_k,device,euc=euc)
                         pred = logits.softmax(-1)
+            if not opts.pre_emh:
+                emb_query = emb_enhance(emb_query,real_proto_k,device,emh=emh)
             _,Hyp = torch.max(pred, dim=1)
             Hyp_in = Hyp[idx_query_in]
             k_exemplar = torch.stack([exemplar_sup[labels_support==i][0] for i in range(num_classes)],dim=0)
