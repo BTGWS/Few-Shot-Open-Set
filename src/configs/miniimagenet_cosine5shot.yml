@@ -18,7 +18,7 @@ q: 30
 epoch: 1000
 lr: 1e-3
 lr_gamma: 0.5
-weight_decay: 5e-5
+weight_decay: 5e-4
 img_cols: 84
 img_rows: 84
 schedular: 400

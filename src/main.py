@@ -164,35 +164,8 @@ torch.save({
             'best_model_state_dict': best_model_state_dict,
             'final_model_state_dict': final_model_state_dict
             }, save_model_path+'models.pth')
-# m = '/home/snag005/Desktop/fs_ood/trial2/models/miniimagenet/1shot_modeltemp_1000'
-# best_model= torch.load(m)
-# best_model.to(device)
+m = '/home/snag005/Desktop/fs_ood/trial2/models/miniimagenet/1shot_modeltemp_1000'
+best_model= torch.load(m)
+best_model.to(device)
 
 
-# # final_model = model
-# final_model.eval()
-# best_model.eval()
-# # _,_,_,recon_query,_= best_model(data[0].to(device))
-# # recon = recon_query.detach().cpu().numpy()
-# # np.save('/home/snag005/Desktop/fs_ood/trial2/'+'recon.npy', recon, allow_pickle=True, fix_imports=True)
-# Accuracy_mean1,Au_ROC_mean1,Accuracy_std1,Au_ROC_std1 = tester(model=final_model,device=device,test_loader=testloader,opts=args)
-# Accuracy_mean2,Au_ROC2_mean2,Accuracy_std2,Au_ROC_std2= tester(model=best_model,device=device,test_loader=testloader,opts=args)
-# print('For %s %d shot final model test accuracy = %.6f + %.6f and AuROC =  %.6f + %.6f'%(args.dataset,args.k,Accuracy_mean1,Accuracy_std1,Au_ROC_mean1,Au_ROC_std1))
-# print('For %s %d shot best validation model test accuracy = %.6f + %.6f and AuROC =  %.6f + %.6f'%(args.dataset,args.k,Accuracy_mean2,Accuracy_std2,Au_ROC2_mean2,Au_ROC_std2))
-
-# mdl = input('Press 1 to save final_model and 2 for best_validation_model: ')
-# if int(mdl) == 1:
-#   save_model = final_model
-# else:
-#   save_model = best_model
-
-# save_model_path = '/home/eegrad/snag/Desktop/fs_ood/src/models/output/'+args.dataset+'/'
-# mdl_no = args.mdl_no
-# if os.path.exists(save_model_path):
-#   mdl_path = save_model_path +str(args.k)+'shot_model'+str(mdl_no)
-#     # str(args.img_cols)+'x'+str(args.img_cols)+'_'+str(args.n)+'shot_model'+str(x))
-#   torch.save(save_model.cpu(),mdl_path)
-# else:
-#   os.mkdir(save_model_path )
-#   mdl_path = save_model_path +str(args.k)+'shot_model'+str(mdl_no)
-#   torch.save(save_model.cpu(),mdl_path)
