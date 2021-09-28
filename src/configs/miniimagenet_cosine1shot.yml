@@ -1,0 +1,31 @@
+dataset: miniimagenet
+backbone: custom_resnet12 
+metric: cosine 
+recon: l2 
+trainer_type: bifurcated 
+tester_type: bifurcated 
+emb_enhance: True 
+weighted_mean: True 
+temperature: 16.0 
+z_dim: 640
+ab_module_layers: [200, 100]
+lambdas: [0.01, 1, 10]
+episodes_per_epoch_train: 50
+episodes_test: 600
+n: 5
+k: 1
+q: 30
+epoch: 1000
+lr: 1e-3
+lr_gamma: 0.5
+img_cols: 84
+img_rows: 84
+schedular: 400
+rank: 0
+val_check: 10000
+model_id: cosine_resent12_temp16
+#relnet
+clf_mode: cosine
+lr_decoder: 1e-4
+pre_emh: False
+output_dir: /home/eegrad/snag/Desktop/fs_ood/src/models/output/

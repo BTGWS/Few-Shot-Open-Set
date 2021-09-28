@@ -122,12 +122,12 @@ else:
 if args.trainer_type == 'proto' or args.tester_type =='proto':
   model =  Encoder(backbone = args.backbone,mlp_inp_dim=args.mlp_inp_dim,mlp_hid_layers=args.mlp_hid_layers,inp_channels=3,
         hid_dim=args.conv_hid_layers,conv_filters=args.enc_conv_filters,linear = args.linear_embedding,linear_inp_siz=args.linear_embedding_size,
-        stn =stn,z_dim=args.z_dim,stride=args.enc_stride,branch=True)
+        stn =stn,z_dim=args.z_dim,stride=args.enc_stride,branch=True,temperature=args.temperature)
 else:
   model = Proto_ND(ab_inp_size=ab_inp_size,backbone = args.backbone,mlp_inp_dim=args.mlp_inp_dim,mlp_hid_layers=args.mlp_hid_layers,inp_channels=3, 
       hid_dim=args.conv_hid_layers,enc_conv_filters=args.enc_conv_filters,dec_conv_filters=args.dec_conv_filters,linear = args.linear_embedding,
   		linear_inp_siz=args.linear_embedding_size,stride=args.enc_stride,outsize=[args.img_cols, args.img_rows], ab_layers = args.ab_module_layers,
-      z_dim=args.z_dim, stn=stn)
+      z_dim=args.z_dim, stn=stn,temperature=args.temperature)
 # model = nn.DataParallel(model)
 
 # if args.pretrain:
@@ -148,15 +148,21 @@ else:
   # trainloader = DataLoader(tr_loader, batch_sampler=tr_sampler, num_workers=args.workers, shuffle=False, pin_memory=True)
 
 torch.autograd.set_detect_anomaly(True)
-final_model,best_model = trainer(model=model,device=device,train_loader=trainloader,val_loader=testloader,tester=tester,opts=args)
-final_model = final_model.to('cpu')
-final_model = best_model.to('cpu')
+final_model_state_dict,best_model_state_dict = trainer(model=model,device=device,train_loader=trainloader,val_loader=testloader,tester=tester,opts=args)
+
+for k, v in final_model_state_dict.items():
+    final_model_state_dict[k] = v.cpu()
+
+for k, v in best_model_state_dict.items():
+    best_model_state_dict[k] = v.cpu()
+
 save_model_path = args.output_dir+args.dataset+'/'+str(args.k)+'shot_model_'+args.model_id+'/'
-os.mkdir(save_model_path)
+if not os.path.exists(save_model_path):
+  os.mkdir(save_model_path)
 
 torch.save({
-            'best_model_state_dict': best_model.state_dict(),
-            'final_model_state_dict': model.state_dict()
+            'best_model_state_dict': best_model_state_dict,
+            'final_model_state_dict': final_model_state_dict
             }, save_model_path+'models.pth')
 # m = '/home/snag005/Desktop/fs_ood/trial2/models/miniimagenet/1shot_modeltemp_1000'
 # best_model= torch.load(m)

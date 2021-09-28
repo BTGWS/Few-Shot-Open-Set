@@ -4,7 +4,7 @@ import yaml
 def get_args():
     parser = ArgumentParser(description='ReFOCS')
     parser.add_argument('--config',help='configuration file.*yml',type=str,required=False,default='miniimagenet.yml')
-    parser.add_argument('--seed',       type=int,   default=42,  help='Random seed')
+    parser.add_argument('--seed',       type=int,   default=13,  help='Random seed')
     parser.add_argument('--dataset',    type=str,   default='gtsrb', help='dataset to use [gtsrb, gtsrb2TT100K, belga2flickr, belga2toplogo, miniimagenet]')
     parser.add_argument('--exp',        type=str,   default='exp_list',     help='training scenario')
     parser.add_argument('--backbone',  type=str,   default='conv_layers',     help='backbone [conv_layers, MLP, resnet18, resnet12, resnet152, custom_resnet12]')
@@ -43,7 +43,7 @@ def get_args():
     parser.add_argument('--n', type=int, default=5, help='Number of classes per episode of training (default: 5 way)')
     parser.add_argument('--epoch', type=int, default=30, help='Number of epochs (default: 30)')
     parser.add_argument('--lr', type=float, default=1e-4, help='Learning rate (default: 1e-4)')
-    parser.add_argument('--output_dir',type=str,   default='/home/eegrad/snag/Desktop/fs_ood/src/models/output/',     help='output directory ')
+    parser.add_argument('--output_dir',type=str,   default='output/',     help='output directory ')
     parser.add_argument('--img_cols',   type=int,   default=64,  help='resized image width')
     parser.add_argument('--img_rows',   type=int,   default=64,  help='resized image height')
     parser.add_argument('--workers',    type=int,   default=2,   help='Data loader workers')
@@ -56,6 +56,9 @@ def get_args():
     args.lr = float(args.lr)
     if args.lr_decoder is not None:
         args.lr_decoder = float(args.lr_decoder)
+    else:
+        print(args.lr_decoder)
+
     # args.lr_backbone = float(args.lr_backbone)
     # args.weight_decay = float(args.weight_decay)
     return args

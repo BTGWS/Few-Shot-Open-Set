@@ -28,7 +28,7 @@ class Feature_extractor(nn.Module):
 class Encoder(nn.Module):
     def __init__(self, layers=[2, 2, 2, 2], norm_layer=None,
         branch=False,backbone = 'conv_layers',mlp_inp_dim=512,mlp_hid_layers=[256,128,64], inp_channels=3, hid_dim=[64,64,64,64],conv_filters=[3,3,3,3],linear = False,
-        linear_inp_siz=16000,stn = [[200,300,200], None, [150, 150, 150]],z_dim=300,stride=1):
+        linear_inp_siz=16000,stn = [[200,300,200], None, [150, 150, 150]],z_dim=300,stride=1,temperature=100.0):
         super(Encoder, self).__init__() 
         self.backbone = backbone
         
@@ -42,7 +42,7 @@ class Encoder(nn.Module):
             layers = [2, 1, 1, 1]
             self.embed = ResNet18Enc(block, layers=layers, norm_layer=norm_layer,z_dim=z_dim, branch=branch)
         elif(self.backbone == 'custom_resnet12'):
-            self.embed = build_resnet12(avg_pool=True, drop_rate=0.1, dropblock_size=5,branch=True,tau=100.0)
+            self.embed = build_resnet12(avg_pool=True, drop_rate=0.0, dropblock_size=5,branch=True,tau=temperature)
         elif(self.backbone == 'resnet152'):
             self.embed = ResNet_152_Encoder(CNN_embed_dim = z_dim)
         elif(self.backbone == 'MLP'):
@@ -75,7 +75,7 @@ class Decoder(nn.Module):
             layers = [1,1,1,1]
             self.decode = ResNet18Dec(num_Blocks=layers,z_dim=z_dim,outsize=outsize,nc=inp_channels)
         elif self.backbone == 'custom_resnet12':
-            self.decode = build_resnet12dec(avg_pool=False, drop_rate=0.1, dropblock_size=5,outsize=outsize,z_dim=z_dim)
+            self.decode = build_resnet12dec(avg_pool=False, drop_rate=0.0, dropblock_size=5,outsize=outsize,z_dim=z_dim)
         elif(self.backbone == 'resnet152'):
             self.decode = ResNet_152_Decoder(CNN_embed_dim=z_dim,out_c=inp_channels, out_size=outsize)
         elif(self.backbone =='MLP'):
@@ -142,15 +142,15 @@ class Proto_ND(nn.Module):
     def __init__(self,ab_inp_size, resnet_layers=[2, 2, 2, 2], norm_layer=None,
         branch=True,backbone='conv_layers',mlp_inp_dim=512,mlp_hid_layers=[256,128,64],inp_channels=1, hid_dim=[64,64,64,64],enc_conv_filters=[3,3,3,3],
         dec_conv_filters=[3,3,3,3],linear = False,linear_inp_siz=16000,stride=1, outsize=[64,64],stn = [[200,300,200], None, [150, 150, 150]],
-        ab_layers = [256,256],z_dim=300,init_weights=True,clf_mode='cosine' ):
+        ab_layers = [256,256],z_dim=300,init_weights=True,clf_mode='cosine',temperature=100.0 ):
 
         super(Proto_ND,self).__init__()
         self.clf_mode = clf_mode
         self.backbone = backbone
-        self.feat_ext_module = Feature_extractor()
+        # self.feat_ext_module = Feature_extractor()
         self.enc_module = Encoder(layers=resnet_layers, norm_layer=norm_layer,
         branch=branch,backbone = self.backbone,mlp_inp_dim=mlp_inp_dim,mlp_hid_layers=mlp_hid_layers,inp_channels=inp_channels, hid_dim=hid_dim,
-        conv_filters=enc_conv_filters,linear = linear,linear_inp_siz=linear_inp_siz,stn =stn,z_dim=z_dim,stride=stride)
+        conv_filters=enc_conv_filters,linear = linear,linear_inp_siz=linear_inp_siz,stn =stn,z_dim=z_dim,stride=stride,temperature=temperature)
 
         self.dec_module = Decoder(backbone = self.backbone,mlp_inp_dim=mlp_inp_dim,mlp_hid_layers=mlp_hid_layers,layers=resnet_layers,
                                 inp_channels=inp_channels, hid_dim=hid_dim,outsize=outsize,
@@ -161,9 +161,9 @@ class Proto_ND(nn.Module):
         # if init_weights:
         #     self._initialize_weights()
 
-    def feat_extractor(self,x):
-        x = self.feat_ext_module(x)
-        return x
+    # def feat_extractor(self,x):
+    #     x = self.feat_ext_module(x)
+    #     return x
 
     def classify(self,x):
         return self.classifier(x)

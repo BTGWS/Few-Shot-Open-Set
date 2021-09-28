@@ -82,7 +82,7 @@ def tester(model,device,test_loader,opts):
                 logits = model.classify(relation_pairs).view(emb_query.shape[0],num_classes)
                 pred = logits
             else:
-                if temp:
+                if temp is not None:
                         logits = cosine_classifier(emb_query,real_proto_k,device,euc=euc,tau=tau)
                         pred = logits.softmax(-1)
                 else:

@@ -69,7 +69,7 @@ class BasicBlock(nn.Module):
 
 class ResNet(nn.Module):
 
-    def __init__(self, block, keep_prob=1.0, avg_pool=False, drop_rate=0.0,branch=True, dropblock_size=5,tau=100):
+    def __init__(self, block, keep_prob=1.0, avg_pool=False, drop_rate=0.0,branch=True, dropblock_size=5,tau=100.0):
         self.inplanes = 3
         super(ResNet, self).__init__()
         self.branch = branch
@@ -86,6 +86,8 @@ class ResNet(nn.Module):
         self.keep_avg_pool = avg_pool
         self.dropout = nn.Dropout(p=1 - self.keep_prob, inplace=False)
         self.drop_rate = drop_rate
+        if tau is None:
+            tau = 1.0
         self.tau = nn.Parameter(torch.tensor(tau))
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
