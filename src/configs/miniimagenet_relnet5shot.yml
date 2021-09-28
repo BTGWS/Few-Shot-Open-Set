@@ -28,4 +28,4 @@ model_id: rel_net_post_emh_resent12
 clf_mode: rel_net
 lr_decoder: 1e-4
 pre_emh: False
-output_dir: /home/eegrad/snag/Desktop/fs_ood/src/models/output/
+output_dir: models/output/

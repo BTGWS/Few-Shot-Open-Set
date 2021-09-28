@@ -24,7 +24,7 @@ from pdb import set_trace as breakpoint
 
 
 # Set the appropriate paths of the datasets here.
-_MINI_IMAGENET_DATASET_DIR = '/home/eegrad/snag/Desktop/fs_ood/src/datasets/db/miniimagenet2/' ## your miniimagenet folder
+# _MINI_IMAGENET_DATASET_DIR = 'datasets/db/miniimagenet2/' ## your miniimagenet folder
 
 
 def buildLabelIndex(labels):
@@ -50,28 +50,28 @@ def load_data(file):
         return data
 
 class MiniImageNet(data.Dataset):
-    def __init__(self, phase='train', img_size=[84,84],do_not_use_random_transf=False):
+    def __init__(self, phase='train', img_size=[84,84],data_path = 'datasets/db/miniimagenet2/',do_not_use_random_transf=False):
         self.img_size =img_size
         self.base_folder = 'miniImagenet'
         #assert(phase=='train' or phase=='val' or phase=='test' or ph)
         self.phase = phase
         self.name = 'MiniImageNet_' + phase
-
+        self.data_path = data_path
         print('Loading mini ImageNet dataset - phase {0}'.format(phase))
         file_train_categories_train_phase = os.path.join(
-            _MINI_IMAGENET_DATASET_DIR,
+            self.data_path,
             'miniImageNet_category_split_train_phase_train.pickle')
         file_train_categories_val_phase = os.path.join(
-            _MINI_IMAGENET_DATASET_DIR,
+            self.data_path,
             'miniImageNet_category_split_train_phase_val.pickle')
         file_train_categories_test_phase = os.path.join(
-            _MINI_IMAGENET_DATASET_DIR,
+            self.data_path,
             'miniImageNet_category_split_train_phase_test.pickle')
         file_val_categories_val_phase = os.path.join(
-            _MINI_IMAGENET_DATASET_DIR,
+            self.data_path,
             'miniImageNet_category_split_val.pickle')
         file_test_categories_test_phase = os.path.join(
-            _MINI_IMAGENET_DATASET_DIR,
+            self.data_path,
             'miniImageNet_category_split_test.pickle')
 
         if self.phase=='train':
@@ -149,14 +149,14 @@ class MiniImageNet(data.Dataset):
         normalize = transforms.Normalize(mean=mean_pix, std=std_pix)
 
         if (self.phase=='test' or self.phase=='val') or (do_not_use_random_transf==True):
-            self.transform = transforms.Compose([
-                transforms.RandomCrop(self.img_size, padding=8),
-                transforms.ToTensor()
-            ])
             # self.transform = transforms.Compose([
-            #     transforms.Resize(self.img_size),
-            #     transforms.ToTensor(),
+            #     transforms.RandomCrop(self.img_size, padding=8),
+            #     transforms.ToTensor()
             # ])
+            self.transform = transforms.Compose([
+                transforms.Resize(self.img_size),
+                transforms.ToTensor(),
+            ])
         else:
             self.transform = transforms.Compose([
                 transforms.RandomCrop(self.img_size, padding=8),
@@ -167,7 +167,7 @@ class MiniImageNet(data.Dataset):
             
     def __getitem__(self, index):
         img, label = self.data[index], self.labels[index]
-        template = Image.open(_MINI_IMAGENET_DATASET_DIR+ 'templates/'+self.phase+'/class_tensor('+str(label)+')')
+        template = Image.open(self.data_path+ 'templates/'+self.phase+'/class_tensor('+str(label)+')')
         # doing this so that it is consistent with all other datasets
         # to return a PIL Image
         # print(label)

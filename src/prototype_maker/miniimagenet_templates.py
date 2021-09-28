@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader
 import torchvision
 from torchvision import datasets, transforms
 
-sys.path.append('/home/eegrad/snag/Desktop/fs_ood/src/')
+sys.path.append('../')
 from loader import get_loader, get_data_path
 
 def template_extractor(loader,uniq_labels,extractor):
@@ -92,9 +92,9 @@ data_path = get_data_path(args.dataset)
 # tr_loader = data_loader(root=data_path, resize=(args.img_rows, args.img_cols), mode='train', augment=0)
 # val_loader = data_loader(root=data_path, resize=(args.img_rows, args.img_cols), mode='val', augment=0)
 # te_loader = data_loader(root=data_path, resize=(args.img_rows, args.img_cols), mode='test', augment=0)
-tr_loader = data_loader(phase='train',img_size=[args.img_rows,args.img_cols],do_not_use_random_transf=True)
-val_loader = data_loader(phase='val',img_size=[args.img_rows,args.img_cols])
-te_loader = data_loader(phase='test',img_size=[args.img_rows,args.img_cols])
+tr_loader = data_loader(phase='train',data_path = data_path,img_size=[args.img_rows,args.img_cols],do_not_use_random_transf=True)
+val_loader = data_loader(phase='val',data_path = data_path,img_size=[args.img_rows,args.img_cols])
+te_loader = data_loader(phase='test',data_path = data_path,img_size=[args.img_rows,args.img_cols])
 label_train = torch.tensor(tr_loader.targets)
 label_val = torch.tensor(val_loader.targets)
 label_test= torch.tensor(te_loader.targets)
@@ -121,7 +121,7 @@ train_template = template_extractor(trainloader,uniq_labels_train,extractor)
 val_template = template_extractor(valloader,uniq_labels_val,extractor)
 test_template = template_extractor(testloader,uniq_labels_test,extractor)
 
-root = '/home/eegrad/snag/Desktop/fs_ood/src/datasets/db/miniimagenet2/'
+root = data_path
 save_images(uniq_labels = uniq_labels_train, template=train_template,root=root,mode='train')
 save_images(uniq_labels = uniq_labels_val, template=val_template,root=root,mode='val')
 save_images(uniq_labels = uniq_labels_test, template=test_template,root=root,mode='test')

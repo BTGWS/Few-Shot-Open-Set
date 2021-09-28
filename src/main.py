@@ -59,9 +59,9 @@ data_path = get_data_path(args.dataset)
 trainer = get_trainer(args.trainer_type)
 tester = get_tester(args.tester_type)
 if(args.dataset == 'miniimagenet'):
-   tr_loader = data_loader(phase='train')   #data_loader(root=data_path, resize=(args.img_rows, args.img_cols), mode='train', augment=1)
-   val_loader = data_loader(phase='val')   #data_loader(root=data_path, resize=(args.img_rows, args.img_cols), mode='val', augment=2)
-   te_loader = data_loader(phase='test')      #data_loader(root=data_path, resize=(args.img_rows, args.img_cols), mode='test', augment=2)
+   tr_loader = data_loader(phase='train',data_path=data_path,img_size=[args.img_cols,args.img_rows])   #data_loader(root=data_path, resize=(args.img_rows, args.img_cols), mode='train', augment=1)
+   val_loader = data_loader(phase='val',data_path=data_path,img_size=[args.img_cols,args.img_rows])   #data_loader(root=data_path, resize=(args.img_rows, args.img_cols), mode='val', augment=2)
+   te_loader = data_loader(phase='test',data_path=data_path,img_size=[args.img_cols,args.img_rows])      #data_loader(root=data_path, resize=(args.img_rows, args.img_cols), mode='test', augment=2)
 elif(args.dataset == 'plantae'):
    tr_loader = data_loader(root=data_path, resize=(args.img_rows, args.img_cols),mode= 'train', transform=1)
    val_loader = data_loader(root=data_path, resize=(args.img_rows, args.img_cols),mode= 'val', transform=2)
