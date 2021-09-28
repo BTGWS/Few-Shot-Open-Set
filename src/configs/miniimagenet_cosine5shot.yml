@@ -18,6 +18,7 @@ q: 30
 epoch: 1000
 lr: 1e-3
 lr_gamma: 0.5
+weight_decay: 5e-5
 img_cols: 84
 img_rows: 84
 schedular: 400
@@ -28,4 +29,4 @@ model_id: cosine_resent12_temp16_dpout0_schdecdr
 clf_mode: cosine
 lr_decoder: 1e-3
 pre_emh: False
-output_dir: /home/eegrad/snag/Desktop/fs_ood/src/models/output/
+output_dir: models/output/

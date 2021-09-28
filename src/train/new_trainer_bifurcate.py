@@ -44,7 +44,11 @@ def train(model,device,train_loader,val_loader,tester,opts):
             p.requires_grad = True
           else:
             p.requires_grad = False
+        param_dict = [
+            {'params': model.classifier.parameters(),'weight_decay':float(opts.weight_decay_clf)},
+            {'params': model.enc_module.parameters()}
 
+        ]
        
     else:
         for n,p in model.named_parameters():
@@ -52,6 +56,11 @@ def train(model,device,train_loader,val_loader,tester,opts):
             p.requires_grad = True
           else:
             p.requires_grad = False
+
+        param_dict = [
+            {'params': model.enc_module.parameters()}
+
+        ]
 
     param_dict = [
             {'params': model.parameters()}
@@ -63,7 +72,7 @@ def train(model,device,train_loader,val_loader,tester,opts):
     best_accuracy = 0
     best_auroc = 0
     best_model_state_dict = model.state_dict()
-    optimizer = torch.optim.Adam(param_dict, lr=LR)
+    optimizer = torch.optim.Adam(param_dict, lr=LR, weight_decay=float(opts.weight_decay))
     # optimizer = torch.optim.SGD(model.enc_module.parameters(), lr=LR, momentum=0.9, nesterov=True)
     if sch is not None:
        scheduler = StepLR(optimizer, sch, gamma=opts.lr_gamma)
@@ -140,6 +149,7 @@ def train(model,device,train_loader,val_loader,tester,opts):
                     msg = str(n_support)+'_shot_'+opts.model_id+"======>"+'At Epoch [{}]/[{}] \t\tCurrent Acc is {:.5f} {:s}  previous best Acc is {:.5f} '.format(epoch,
                         max_epoch,Accuracy, eqn, best_accuracy)
                 logger(msg)
+                model.train()
         if sch is not None:
                 scheduler.step() 
     
@@ -153,12 +163,12 @@ def train(model,device,train_loader,val_loader,tester,opts):
             p.requires_grad = False
 
     param_dict = [
-            {'params': model.parameters()}
+            {'params': model.dec_module.parameters()},{'params': model.nd_module.parameters()}
         ]
    
     # optimizer = torch.optim.Adam(model.parameters(), lr=LR/10)
     assert opts.lr_decoder is not None
-    optimizer = torch.optim.Adam(param_dict, lr=opts.lr_decoder)
+    optimizer = torch.optim.Adam(param_dict, lr=opts.lr_decoder,weight_decay=float(opts.weight_decay))
     # optimizer = torch.optim.SGD(list(model.dec_module.parameters())+list(model.nd_module.parameters()), lr=LR, momentum=0.9, nesterov=True)
     counter = 0
     best_auroc = 0
@@ -274,6 +284,7 @@ def train(model,device,train_loader,val_loader,tester,opts):
                      {:s} previous best Auroc is {:.5f} '.format(epoch,max_epoch,Accuracy,Accuracy_std,Au_ROC,Au_ROC_std, eqn, best_auroc)
                     
                 logger(msg)
+                model.train()
         if sch is not None:
             scheduler.step(counter)  
     return model.state_dict(),best_model_state_dict
