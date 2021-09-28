@@ -28,4 +28,4 @@ model_id: cosine_resent12_temp16_dpout0_schdecdr
 clf_mode: cosine
 lr_decoder: 1e-3
 pre_emh: False
-output_dir: /home/eegrad/snag/Desktop/fs_ood/src/models/output/
+output_dir: models/output/

@@ -44,7 +44,11 @@ def train(model,device,train_loader,val_loader,tester,opts):
             p.requires_grad = True
           else:
             p.requires_grad = False
+        param_dict = [
+            {'params': model.classifier.parameters()},
+            {'params': model.enc_module.parameters()}
 
+        ]
        
     else:
         for n,p in model.named_parameters():
@@ -52,10 +56,12 @@ def train(model,device,train_loader,val_loader,tester,opts):
             p.requires_grad = True
           else:
             p.requires_grad = False
+        param_dict = [
+            {'params': model.enc_module.parameters()}
 
-    param_dict = [
-            {'params': model.parameters()}
         ]
+
+    p
     # model = nn.DataParallel(model)
     model.to(device)
     model.train()
@@ -139,6 +145,7 @@ def train(model,device,train_loader,val_loader,tester,opts):
                 
                     msg = str(n_support)+'_shot_'+opts.model_id+"======>"+'At Epoch [{}]/[{}] \t\tCurrent Acc is {:.5f} {:s}  previous best Acc is {:.5f} '.format(epoch,
                         max_epoch,Accuracy, eqn, best_accuracy)
+                model.train()
                 logger(msg)
         if sch is not None:
                 scheduler.step() 
@@ -153,7 +160,8 @@ def train(model,device,train_loader,val_loader,tester,opts):
             p.requires_grad = False
 
     param_dict = [
-            {'params': model.parameters()}
+            {'params': model.dec_module.parameters()},
+            {'params': model.nd_module.parameters()}
         ]
    
     # optimizer = torch.optim.Adam(model.parameters(), lr=LR/10)
@@ -272,7 +280,7 @@ def train(model,device,train_loader,val_loader,tester,opts):
                 
                     msg = str(n_support)+'_shot_'+opts.model_id+"======>"+'At Epoch [{}]/[{}] \t\tCurrent Acc is {:.5f} + {:.5f} and current Auroc is {:.5f} + {:.5f} \
                      {:s} previous best Auroc is {:.5f} '.format(epoch,max_epoch,Accuracy,Accuracy_std,Au_ROC,Au_ROC_std, eqn, best_auroc)
-                    
+                model.train()
                 logger(msg)
         if sch is not None:
             scheduler.step(counter)  
