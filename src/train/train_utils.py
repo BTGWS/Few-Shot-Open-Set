@@ -17,7 +17,7 @@ def loss_vpe(recon_x, x, mu, log_var,device,percept=None,recon='ce'):
     else:
         BCE = percept(recon_x,x)
     KLD = -0.5* torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
-    l = (BCE + KLD)*(1/recon_x.shape[0])
+    l = (BCE + KLD)
     return l
 def loss_recon(recon_x, x):
     l1_l =torch.nn.L1Loss(reduction='sum')

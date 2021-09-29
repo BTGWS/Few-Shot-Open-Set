@@ -9,7 +9,7 @@ weighted_mean: True
 temperature: 16.0
 z_dim: 640
 ab_module_layers: [200, 100]
-lambdas: [0.01, 1, 10]
+lambdas: [0.0001, 1, 10]
 episodes_per_epoch_train: 50
 episodes_test: 600
 n: 5
