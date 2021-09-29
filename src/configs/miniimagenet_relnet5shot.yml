@@ -24,10 +24,10 @@ img_cols: 84
 img_rows: 84
 schedular: 400
 rank: 3
-val_check: 10000
+val_check: 20000
 model_id: rel_net_post_emh_resent12
 #relnet
 clf_mode: rel_net
-lr_decoder: 1e-4
+lr_decoder: 1e-3
 pre_emh: False
 output_dir: models/output/

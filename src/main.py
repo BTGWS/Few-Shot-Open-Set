@@ -164,8 +164,5 @@ torch.save({
             'best_model_state_dict': best_model_state_dict,
             'final_model_state_dict': final_model_state_dict
             }, save_model_path+'models.pth')
-m = '/home/snag005/Desktop/fs_ood/trial2/models/miniimagenet/1shot_modeltemp_1000'
-best_model= torch.load(m)
-best_model.to(device)
 
 
