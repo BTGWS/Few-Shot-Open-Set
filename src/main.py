@@ -32,7 +32,10 @@ args = get_args()
 
 device = torch.device('cuda:'+str(args.rank) if torch.cuda.is_available() else 'cpu')
 torch.manual_seed(args.seed)
-torch.cuda.manual_seed(args.seed)
+torch.cuda.manual_seed_all(seed)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+torch.backends.cudnn.enabled = False
 np.random.seed(args.seed )
 random.seed(args.seed)
 
@@ -127,7 +130,7 @@ else:
   model = Proto_ND(ab_inp_size=ab_inp_size,backbone = args.backbone,mlp_inp_dim=args.mlp_inp_dim,mlp_hid_layers=args.mlp_hid_layers,inp_channels=3, 
       hid_dim=args.conv_hid_layers,enc_conv_filters=args.enc_conv_filters,dec_conv_filters=args.dec_conv_filters,linear = args.linear_embedding,
   		linear_inp_siz=args.linear_embedding_size,stride=args.enc_stride,outsize=[args.img_cols, args.img_rows], ab_layers = args.ab_module_layers,
-      z_dim=args.z_dim, stn=stn,temperature=args.temperature)
+      z_dim=args.z_dim, stn=stn,temperature=args.temperature,clf_mode=args.clf_mode)
 # model = nn.DataParallel(model)
 
 # if args.pretrain:

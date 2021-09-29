@@ -80,22 +80,23 @@ def proto_rectifier(emb_support,emb_proto_k,labels_support,n_support=5,num_class
     # emb_support = torch.reshape(emb_support, (emb_support.shape[0],emb_support.shape[1]))
     # w_gen = nn.Softmax(dim = 0)
     cos = nn.CosineSimilarity(dim=1, eps=1e-6)
-    support_one_hot_labels = torch.zeros((emb_support.shape[0], num_classes),device=emb_support.device)
-    support_one_hot_labels = torch.tensor(support_one_hot_labels.scatter_(1, labels_support.view(-1,1), 1))
+    
     if wts:
-        
-        weights = torch.exp(cos(emb_support,emb_proto_k)) #Ns
-        weights = weights.unsqueeze(1).repeat(1,num_classes) #Ns x C
-        
-        weights_cls_wise = support_one_hot_labels*weights
-        normalize = weights_cls_wise.sum(dim=0) #C
-        normalize = normalize.unsqueeze(1).repeat(1,emb_support.shape[1])#C x dim
+        all_exemplars =  torch.stack([emb_proto_k[labels_support==i][0] for i in range(num_classes)],dim=0)
+        proto_new = []
+        for i in range(num_classes):
+            emb_support_k = emb_support[labels_support==i] #n_support x dim
+            weights = cos(emb_support_k,all_exemplars[i].unsqueeze(0)) #n_support
+            weights = weights.softmax(dim=0)
+            proto_new.append(torch.matmul(weights,emb_support_k))
+        proto_new = torch.stack(proto_new,dim=0)#C x dim
+       
     else:
-
+        support_one_hot_labels = torch.zeros((emb_support.shape[0], num_classes),device=emb_support.device)
+        support_one_hot_labels = torch.tensor(support_one_hot_labels.scatter_(1, labels_support.view(-1,1), 1))
         proto_new = (1/n_support)*torch.matmul(support_one_hot_labels.transpose(0,1), emb_support)
         return proto_new
    
-    proto_new = (1/n_support)*(normalize**-1)*torch.matmul(weights_cls_wise.transpose(0,1),emb_support)
     return proto_new
     
 

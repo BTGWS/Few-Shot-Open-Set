@@ -42,7 +42,7 @@ class Encoder(nn.Module):
             layers = [2, 1, 1, 1]
             self.embed = ResNet18Enc(block, layers=layers, norm_layer=norm_layer,z_dim=z_dim, branch=branch)
         elif(self.backbone == 'custom_resnet12'):
-            self.embed = build_resnet12(avg_pool=True, drop_rate=0.0, dropblock_size=5,branch=True,tau=temperature)
+            self.embed = build_resnet12(avg_pool=True, drop_rate=0.1, dropblock_size=5,branch=True,tau=temperature)
         elif(self.backbone == 'resnet152'):
             self.embed = ResNet_152_Encoder(CNN_embed_dim = z_dim)
         elif(self.backbone == 'MLP'):
@@ -75,7 +75,7 @@ class Decoder(nn.Module):
             layers = [1,1,1,1]
             self.decode = ResNet18Dec(num_Blocks=layers,z_dim=z_dim,outsize=outsize,nc=inp_channels)
         elif self.backbone == 'custom_resnet12':
-            self.decode = build_resnet12dec(avg_pool=False, drop_rate=0.0, dropblock_size=5,outsize=outsize,z_dim=z_dim)
+            self.decode = build_resnet12dec(avg_pool=False, drop_rate=0.1, dropblock_size=5,outsize=outsize,z_dim=z_dim)
         elif(self.backbone == 'resnet152'):
             self.decode = ResNet_152_Decoder(CNN_embed_dim=z_dim,out_c=inp_channels, out_size=outsize)
         elif(self.backbone =='MLP'):
@@ -107,6 +107,27 @@ class Rel_net_detect(nn.Module):
 
         x = F.relu(self.rel_fc1(x))
         x = torch.sigmoid(self.rel_fc2(x))
+        return x
+
+class Rel_net_detect_ce(nn.Module):
+    def __init__(self, z_dim):
+        super(Rel_net_detect, self).__init__()
+        
+        self.rel_fc1 = nn.Linear(2*z_dim,z_dim)
+        self.rel_fc2 = nn.Linear(z_dim,1)
+        # for m in self.modules():
+        #     if isinstance(m, nn.Linear):
+        #         n = m.weight.size(1)
+        #         m.weight.data.normal_(0, 0.01)
+        #         m.bias.data = torch.ones(m.bias.data.size())
+        #     elif isinstance(m, nn.BatchNorm2d):
+        #         nn.init.constant_(m.weight, 1)
+        #         nn.init.constant_(m.bias, 0)
+
+    def forward(self,x):
+
+        x = F.relu(self.rel_fc1(x))
+        x = F.relu(self.rel_fc2(x))
         return x
 
 class Ab_module(nn.Module):
@@ -157,7 +178,10 @@ class Proto_ND(nn.Module):
                                 conv_filters=dec_conv_filters,linear = linear,linear_inp_siz=linear_inp_siz,z_dim=z_dim,stride=1)
         
         self.nd_module =  Ab_module(inp_size=ab_inp_size, layers = ab_layers)
-        self.classifier = Rel_net_detect(z_dim=z_dim)
+        if self.clf_mode == 'rel_net_ce':
+            self.classifier = Rel_net_detect(z_dim=z_dim)
+        else:
+            self.classifier = Rel_net_detect_ce(z_dim=z_dim)
         # if init_weights:
         #     self._initialize_weights()
 

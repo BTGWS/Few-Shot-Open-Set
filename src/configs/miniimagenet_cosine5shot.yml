@@ -6,7 +6,7 @@ trainer_type: bifurcated
 tester_type: bifurcated 
 emb_enhance: True 
 weighted_mean: True 
-temperature: 16.0
+temperature: 1000.0 
 z_dim: 640
 ab_module_layers: [200, 100]
 lambdas: [0.0001, 1, 10]
@@ -17,14 +17,14 @@ k: 5
 q: 30
 epoch: 1000
 lr: 1e-3
-lr_gamma: 0.5
-weight_decay: 5e-4
+lr_gamma: 0.1
+weight_decay: 5e-5
 img_cols: 84
 img_rows: 84
-schedular: 200
+schedular: 400
 rank: 0
 val_check: 10000
-model_id: cosine_resent12_temp16_dpout0_schdecdr
+model_id: cosine_resent12_temp1000_dpout0.1
 #relnet
 clf_mode: cosine
 lr_decoder: 1e-3
