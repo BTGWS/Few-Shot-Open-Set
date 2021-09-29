@@ -6,7 +6,7 @@ trainer_type: bifurcated
 tester_type: bifurcated 
 emb_enhance: True 
 weighted_mean: True 
-temperature: 500.0 
+temperature: null 
 z_dim: 640
 ab_module_layers: [200, 100]
 lambdas: [0.01, 1, 10]
@@ -17,15 +17,17 @@ k: 1
 q: 30
 epoch: 2000
 lr: 1e-3
+weight_decay: 1e-4
+weight_decay_clf: 5e-4
 lr_gamma: 0.5
 img_cols: 84
 img_rows: 84
 schedular: 400
-rank: 0
+rank: 2
 val_check: 20000
 model_id: rel_net_post_emh_resent12
 #relnet
 clf_mode: rel_net
-lr_decoder: 1e-4
+lr_decoder: 1e-3
 pre_emh: False
-output_dir: /home/eegrad/snag/Desktop/fs_ood/src/models/output/
+output_dir: models/output/

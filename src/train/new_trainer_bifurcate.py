@@ -46,9 +46,7 @@ def train(model,device,train_loader,val_loader,tester,opts):
             p.requires_grad = False
         param_dict = [
             {'params': model.classifier.parameters(),'weight_decay':float(opts.weight_decay_clf)},
-
-            {'params': model.classifier.parameters()},
-            {'params': model.enc_module.parameters()}
+            {'params': model.enc_module.parameters(),'weight_decay':float(opts.weight_decay)}
 
         ]
        
@@ -70,7 +68,7 @@ def train(model,device,train_loader,val_loader,tester,opts):
     best_accuracy = 0
     best_auroc = 0
     best_model_state_dict = model.state_dict()
-    optimizer = torch.optim.Adam(param_dict, lr=LR, weight_decay=float(opts.weight_decay))
+    optimizer = torch.optim.Adam(param_dict, lr=LR)
     # optimizer = torch.optim.SGD(model.enc_module.parameters(), lr=LR, momentum=0.9, nesterov=True)
     if sch is not None:
        scheduler = StepLR(optimizer, sch, gamma=opts.lr_gamma)

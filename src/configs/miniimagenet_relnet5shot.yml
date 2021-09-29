@@ -17,11 +17,13 @@ k: 5
 q: 30
 epoch: 2000
 lr: 1e-3
+weight_decay: 1e-4
+weight_decay_clf: 5e-4
 lr_gamma: 0.5
 img_cols: 84
 img_rows: 84
 schedular: 400
-rank: 0
+rank: 3
 val_check: 10000
 model_id: rel_net_post_emh_resent12
 #relnet

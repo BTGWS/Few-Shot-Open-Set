@@ -149,15 +149,15 @@ class MiniImageNet(data.Dataset):
         normalize = transforms.Normalize(mean=mean_pix, std=std_pix)
 
         if (self.phase=='test' or self.phase=='val') or (do_not_use_random_transf==True):
-            # self.transform = transforms.Compose([
-            #     transforms.RandomCrop(self.img_size, padding=8),
-            #     transforms.ToTensor(),
-            # normalize
-            # ])
             self.transform = transforms.Compose([
-                transforms.Resize(self.img_size),
-                transforms.ToTensor()
+                transforms.RandomCrop(self.img_size, padding=8),
+                transforms.ToTensor(),
+            normalize
             ])
+            # self.transform = transforms.Compose([
+            #     transforms.Resize(self.img_size),
+            #     transforms.ToTensor()
+            # ])
         else:
             self.transform = transforms.Compose([
                 transforms.RandomCrop(self.img_size, padding=8),
