@@ -74,13 +74,16 @@ def tester(model,device,test_loader,opts):
             
             if opts.pre_emh:
                 emb_query = emb_enhance(emb_query,real_proto_k,device,emh=emh)
-            if opts.clf_mode == 'rel_net':
+            if 'rel_net' in opts.clf_mode:
                 emb_query_ = emb_query.unsqueeze(0).repeat(num_classes,1,1)#C x Nq x dim
                 emb_query_ = emb_query_.transpose(0,1) #Nq x C x dim
                 real_proto_k_ = real_proto_k.unsqueeze(0).repeat(emb_query.shape[0],1,1)
                 relation_pairs = torch.cat((real_proto_k_,emb_query_),2).view(-1,2*emb_query.shape[1])
                 logits = model.classify(relation_pairs).view(emb_query.shape[0],num_classes)
-                pred = logits
+                if 'ce' in opts.clf_mode:
+                    pred = logits.softmax(-1)
+                else:
+                    pred = logits
             else:
                 if temp is not None:
                         logits = cosine_classifier(emb_query,real_proto_k,device,euc=euc,tau=tau)

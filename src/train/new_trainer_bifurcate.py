@@ -69,7 +69,7 @@ def train(model,device,train_loader,val_loader,tester,opts):
     best_auroc = 0
     best_model_state_dict = model.state_dict()
     optimizer = torch.optim.Adam(param_dict, lr=LR)
-    # optimizer = torch.optim.SGD(model.enc_module.parameters(), lr=LR, momentum=0.9, nesterov=True)
+    # optimizer = torch.optim.SGD(param_dict, lr=LR, momentum=0.9, nesterov=True)
     if sch is not None:
        scheduler = StepLR(optimizer, sch, gamma=opts.lr_gamma)
 

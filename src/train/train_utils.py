@@ -36,9 +36,9 @@ def loss_clf(logits,labels,device,clf_mode='cosine'):
         target_one_hot_labels = torch.tensor(target_one_hot.scatter_(1, labels.view(-1,1), 1))
         loss_clf = F.mse_loss(logits,target_one_hot_labels,reduction='mean')
         return logits,loss_clf
-    ml,_ = torch.max(logits,dim=1)
-    ml = ml.unsqueeze(dim=1)
-    logits = logits - ml.repeat((1,logits.shape[1]))
+    # ml,_ = torch.max(logits,dim=1)
+    # ml = ml.unsqueeze(dim=1)
+    # logits = logits - ml.repeat((1,logits.shape[1]))
     loss = F.cross_entropy(logits, labels,reduction='mean')
     return logits.softmax(1),loss
 
@@ -92,9 +92,11 @@ def proto_rectifier(emb_support,emb_proto_k,labels_support,n_support=5,num_class
         proto_new = torch.stack(proto_new,dim=0)#C x dim
        
     else:
-        support_one_hot_labels = torch.zeros((emb_support.shape[0], num_classes),device=emb_support.device)
-        support_one_hot_labels = torch.tensor(support_one_hot_labels.scatter_(1, labels_support.view(-1,1), 1))
-        proto_new = (1/n_support)*torch.matmul(support_one_hot_labels.transpose(0,1), emb_support)
+        proto_new = []
+        for i in range(num_classes):
+            emb_support_k = emb_support[labels_support==i] 
+            proto_new.append(emb_support_k.mean(dim=0))
+        proto_new = torch.stack(proto_new,dim=0)
         return proto_new
    
     return proto_new

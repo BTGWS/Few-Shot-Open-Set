@@ -32,7 +32,7 @@ args = get_args()
 
 device = torch.device('cuda:'+str(args.rank) if torch.cuda.is_available() else 'cpu')
 torch.manual_seed(args.seed)
-torch.cuda.manual_seed_all(seed)
+torch.cuda.manual_seed_all(args.seed)
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 torch.backends.cudnn.enabled = False
@@ -57,6 +57,8 @@ data_aug_te= Compose([Scale(args.img_cols),
 # os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 # Data
+print('---------classification mode is '+args.clf_mode+'--------------------\n')
+
 data_loader = get_loader(args.dataset)
 data_path = get_data_path(args.dataset)
 trainer = get_trainer(args.trainer_type)

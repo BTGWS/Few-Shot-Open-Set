@@ -111,23 +111,18 @@ class Rel_net_detect(nn.Module):
 
 class Rel_net_detect_ce(nn.Module):
     def __init__(self, z_dim):
-        super(Rel_net_detect, self).__init__()
+        super(Rel_net_detect_ce, self).__init__()
         
         self.rel_fc1 = nn.Linear(2*z_dim,z_dim)
         self.rel_fc2 = nn.Linear(z_dim,1)
-        # for m in self.modules():
-        #     if isinstance(m, nn.Linear):
-        #         n = m.weight.size(1)
-        #         m.weight.data.normal_(0, 0.01)
-        #         m.bias.data = torch.ones(m.bias.data.size())
-        #     elif isinstance(m, nn.BatchNorm2d):
-        #         nn.init.constant_(m.weight, 1)
-        #         nn.init.constant_(m.bias, 0)
+        for p in self.parameters():
+            if p.dim() > 1:
+                nn.init.xavier_uniform_(p)
 
     def forward(self,x):
 
         x = F.relu(self.rel_fc1(x))
-        x = F.relu(self.rel_fc2(x))
+        x = (self.rel_fc2(x))
         return x
 
 class Ab_module(nn.Module):

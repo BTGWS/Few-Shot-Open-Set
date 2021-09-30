@@ -151,8 +151,7 @@ class MiniImageNet(data.Dataset):
         if (self.phase=='test' or self.phase=='val') or (do_not_use_random_transf==True):
             self.transform = transforms.Compose([
                 transforms.RandomCrop(self.img_size, padding=8),
-                transforms.ToTensor(),
-            normalize
+                transforms.ToTensor()
             ])
             # self.transform = transforms.Compose([
             #     transforms.Resize(self.img_size),
@@ -163,8 +162,7 @@ class MiniImageNet(data.Dataset):
                 transforms.RandomCrop(self.img_size, padding=8),
                 transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4),
                 transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-                normalize
+                transforms.ToTensor()
             ])
             
     def __getitem__(self, index):
