@@ -1,7 +1,7 @@
 from train.trainer import train as trainer
 from train.trainer_ae import train as trainer_ae
-# from train.trainer_bifurcate import train as trainer_bifurcate
-from train.new_trainer_bifurcate import train as trainer_bifurcate
+from train.trainer_bifurcate import train as trainer_bifurcate
+# from train.new_trainer_bifurcate import train as trainer_bifurcate
 from train.trainer_no_recon import train as trainer_no_recon
 # from train.trainer_proto import train as trainer_proto
 from train.new_trainer_proto import train as trainer_proto
@@ -16,8 +16,8 @@ from train.tester_ae import tester as tester_ae
 from train.tester_no_recon import tester as tester_no_recon
 # from train.tester_proto import tester as tester_proto
 from train.new_tester_proto import tester as tester_proto
-# from train.tester_bifurcated import tester as tester_bifurcated
-from train.new_tester_bifurcated import tester as tester_bifurcated
+from train.tester_bifurcated import tester as tester_bifurcated
+# from train.new_tester_bifurcated import tester as tester_bifurcated
 from train.tester_no_clf import tester as tester_no_clf
 from train.tester_no_embedding import tester as tester_no_embedding
 from train.tester_bifurcated_no_embedding import tester as tester_bifurcated_no_embedding

@@ -43,8 +43,8 @@ def template_extractor(loader,uniq_labels,extractor):
 		mu = torch.mean(f,dim =0)
 		if(len(mu.shape)<2):
 			mu = mu.unsqueeze(0)
-		dist = 1 - cos(f,mu)
-		# dist = ((f - mu)**2).sum(dim=1)
+		# dist = 1 - cos(f,mu)
+		dist = ((f - mu)**2).sum(dim=1)
 		_,min_idx = torch.min(dist,dim=0)
 		x = tmp_x[min_idx]
 		# plt.imshow(transforms.ToPILImage()(x).convert("RGB"))		
@@ -56,25 +56,25 @@ def template_extractor(loader,uniq_labels,extractor):
 def save_images(uniq_labels,template,root,mode='train'):
 	
 	for c in uniq_labels:
-		if os.path.exists(root+'templates/'):
-			if os.path.exists(root+'templates/'+mode+'/'):
+		if os.path.exists(root+'templates2/'):
+			if os.path.exists(root+'templates2/'+mode+'/'):
 				img = template[c.item()]
-				img.save(root+'templates/'+mode+'/class_'+str(c.data),'PNG')
+				img.save(root+'templates2/'+mode+'/class_'+str(c.data),'PNG')
 			else:
-				os.mkdir(root+'templates/'+mode+'/')
+				os.mkdir(root+'templates2/'+mode+'/')
 				img = template[c.item()]
-				img.save(root+'templates/'+mode+'/class_'+str(c.data),'PNG')
+				img.save(root+'templates2/'+mode+'/class_'+str(c.data),'PNG')
 		else:		
-			os.mkdir(root+'templates')		
-			os.mkdir(root+'templates/'+mode+'/')
+			os.mkdir(root+'templates2')		
+			os.mkdir(root+'templates2/'+mode+'/')
 			img = template[c.item()]
-			img.save(root+'templates/'+mode+'/class_'+str(c.data),'PNG')
+			img.save(root+'templates2/'+mode+'/class_'+str(c.data),'PNG')
 
 parser = ArgumentParser(description='prototype selector')
 parser.add_argument('--dataset',    type=str,   default='miniimagenet', help='dataset to use [gtsrb, gtsrb2TT100K, belga2flickr, belga2toplogo, miniimagenet]')
 parser.add_argument('--img_cols',   type=int,   default=84,  help='resized image width')
 parser.add_argument('--img_rows',   type=int,   default=84,  help='resized image height')
-parser.add_argument('--seed',   type=int,   default=13,  help='psuedorandomseed')
+parser.add_argument('--seed',   type=int,   default=42,  help='psuedorandomseed')
 args =  parser.parse_args()
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 

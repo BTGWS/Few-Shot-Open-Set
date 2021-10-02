@@ -56,12 +56,18 @@ def class_renumb(train_y):
       train_y[i] = torch.tensor(d[train_y[i].item()]).to(train_y.device)
     # classes = torch.unique(train_y)
     return classes,train_y
-
+def class_renumb2(train_y):    
+    classes = torch.unique(train_y)
+    d = {classes[i].item():i for i in range(classes.shape[0])}
+    for i in range(train_y.shape[0]):
+      train_y[i] = torch.tensor(d[train_y[i].item()]).to(train_y.device)
+    classes = torch.unique(train_y)
+    return classes,train_y
 def class_scaler(train_y,n,q):
     num_in = n + q//2
     num_out = q//2
     classes_in = []  
-    classes,train_y = class_renumb(train_y)
+    classes,train_y = class_renumb2(train_y)
     for k in classes:
         num_sample = train_y[train_y==k].shape[0]        
         in_idx = (train_y==k).nonzero()
@@ -70,8 +76,31 @@ def class_scaler(train_y,n,q):
     for k in classes_in:
         in_idx = (train_y==k).nonzero()
         train_y[in_idx[-1]+1:in_idx[-1]+1+num_out]=k  
-    classes,train_y = class_renumb(train_y)
+    classes,train_y = class_renumb2(train_y)
     return classes,train_y
+
+def proto_rectifier2(emb_support,emb_proto_k,euc=False,wts=True):
+    if(len(emb_proto_k.shape)>2 or len(emb_support.shape)>2):
+      sys.exit('Error: embedding should be 1d !')
+    # emb_proto_k = torch.reshape(emb_proto_k, (emb_proto_k.shape[0],emb_proto_k.shape[1]))
+    # emb_support = torch.reshape(emb_support, (emb_support.shape[0],emb_support.shape[1]))
+    w_gen = nn.Softmax(dim = 0)
+    cos = nn.CosineSimilarity(dim=1, eps=1e-6)
+    if wts:
+        if euc:
+            d = -((emb_support - emb_proto_k)**2).sum(dim=1)
+        else:
+            d = cos(emb_support,emb_proto_k)
+    else:
+        get_cuda_device = emb_support.get_device()
+        # d = torch.ones((emb_support.shape[0])).to(get_cuda_device)
+        proto_new = torch.mean(emb_support,dim=0,keepdim=True)
+        # print(proto_new.shape)
+        return proto_new
+    weights = w_gen(d)
+    weights= torch.unsqueeze(weights,dim=0)
+    proto_new = torch.matmul(weights,emb_support)
+    return proto_new
 
 def proto_rectifier(emb_support,emb_proto_k,labels_support,n_support=5,num_classes=5,euc=False,wts=True):
     if(len(emb_proto_k.shape)>2 or len(emb_support.shape)>2):
@@ -153,12 +182,13 @@ def emb_enhance(query,real_proto,device,emh=True):
     Nq,dim = query.shape
     l1_diff = torch.Tensor().to(device)
     # print(real_proto.shape)
-    cos = nn.CosineSimilarity(dim=1, eps=1e-6)
+    # cos = nn.CosineSimilarity(dim=1, eps=1e-6)
     if not emh:
         return query
     for i in range(0,num_classes):
-        proto =  real_proto[i,:].unsqueeze(0) #symbolic_proto[i,:]
-        tmp = 1 - cos(query,proto)#Nq       
+        proto =  real_proto[i,:].unsqueeze(0).repeat(query.shape[0],1) #symbolic_proto[i,:]
+        # tmp = 1 - cos(query,proto)#Nq       
+        tmp = torch.abs((query - proto)).sum(dim=1)
         tmp = tmp.unsqueeze(dim=1)        
         l1_diff = torch.cat((l1_diff,tmp),dim=1)# Nq x C
     min_diff,_ = torch.min(l1_diff,dim=1) # Nq

@@ -3,10 +3,11 @@ import torch.nn as nn
 import torchvision
 import sys
 import numpy as np
-from train.train_utils import *
-from models.model import *
+from train.train_utils2 import *
+# from models.model import *
 # from train.tester import *
 from torch.optim.lr_scheduler import MultiStepLR
+from torch.optim.lr_scheduler import StepLR
 def train(model,device,train_loader,val_loader,tester,opts):
     
     max_epoch = opts.epoch
@@ -25,6 +26,34 @@ def train(model,device,train_loader,val_loader,tester,opts):
     emh = opts.emb_enhance
     sch = opts.schedular
     temp = opts.temperature
+    
+
+    if 'rel_net' in opts.clf_mode:
+
+        for n,p in model.named_parameters():
+          if 'classifier' in n or 'enc_module' in n:
+            p.requires_grad = True
+          else:
+            p.requires_grad = False
+        param_dict = [
+            {'params': model.classifier.parameters(),'weight_decay':float(opts.weight_decay_clf)},
+            {'params': model.enc_module.parameters(),'weight_decay':float(opts.weight_decay)}
+
+        ]
+       
+    else:
+        for n,p in model.named_parameters():
+          if 'enc_module' in n:
+            p.requires_grad = True
+          else:
+            p.requires_grad = False
+        param_dict = [
+            {'params': model.enc_module.parameters()}
+            ]
+
+    logger = Logger(opts.output_dir+'log_files/evaluation_logs.txt')
+    optimizer = torch.optim.Adam(param_dict, lr=LR, weight_decay=float(opts.weight_decay))
+    # optimizer = torch.optim.SGD(model.enc_module.parameters(), lr=LR, momentum=0.9, nesterov=True)
     model = model.to(device)
     model.train()
     if entropy:
@@ -32,12 +61,10 @@ def train(model,device,train_loader,val_loader,tester,opts):
     counter = 0
     best_accuracy = 0
     best_auroc = 0
-    best_model = model
+    best_model_state_dict = model.state_dict()
     percept = None
-    optimizer = torch.optim.Adam(model.enc_module.parameters(), lr=LR)
-    # optimizer = torch.optim.SGD(model.enc_module.parameters(), lr=LR, momentum=0.9, nesterov=True)
-    if len(sch) != 0:
-       scheduler = MultiStepLR(optimizer, milestones=sch, gamma=opts.lr_gamma)
+    if sch is not None:
+       scheduler = StepLR(optimizer, sch, gamma=opts.lr_gamma)
 
     model.enc_module.train()
     # percept = perceptualLoss(device)
@@ -66,18 +93,16 @@ def train(model,device,train_loader,val_loader,tester,opts):
                  ## embedding of support and reconstruction
                  emb_support,_,_,_ = model.encode(Dx_k)  
                  # _,emb_support,_ = model.encode(Dx_k)             
-                 emb_support = torch.flatten(emb_support,start_dim=1)
                  # embedding of prototype symbol
                  symbolic_proto_k = proto_sym[train_y==k,:,:,:]
                  emb_proto_k,_,_,_ = model.encode(symbolic_proto_k[0,:,:,:].unsqueeze(dim=0))                 
                  # _,emb_proto_k,_ = model.encode(symbolic_proto_k[0,:,:,:].unsqueeze(dim=0))
-                 emb_proto_k = torch.flatten(emb_proto_k,start_dim=1)
                 
                  # real image prototype
-                 # tmp = proto_rectifier(emb_support,emb_proto_k,euc=euc,wts=wts)
+                 tmp = proto_rectifier(emb_support,emb_proto_k,euc=euc,wts=wts)
 
                  #random prototype
-                 tmp = emb_support[torch.randperm(n_support)[0]].unsqueeze(dim=0)               
+                 # tmp = emb_support[torch.randperm(n_support)[0]].unsqueeze(dim=0)               
 
                  real_proto_k = torch.cat((real_proto_k,tmp),dim=0)# size should be C x embedding size, if not check
            
@@ -103,7 +128,7 @@ def train(model,device,train_loader,val_loader,tester,opts):
                  symbolic_proto_k = proto_sym[train_y==k,:,:,:] 
 
                  #classification prototypical
-                 if temp:
+                 if temp is not None:
                     logits = cosine_classifier(emb_query,real_proto_k,device,euc=euc,tau=tau)
                  else:
                     logits = cosine_classifier(emb_query,real_proto_k,device,euc=euc)
@@ -120,52 +145,64 @@ def train(model,device,train_loader,val_loader,tester,opts):
             l_class.backward()
             optimizer.step()
             counter = counter+1
-            if len(sch) != 0:
-                scheduler.step(counter)  
+            # if len(sch) != 0:
+            #     scheduler.step(counter)  
 
-            if counter % opts.val_check == 0 or counter == max_epoch*len(train_loader):
+            
+            if counter % opts.val_check == 0  or counter == max_epoch*len(train_loader):
                 model.eval()
                 Accuracy,_,_,_ = tester(model=model,device=device,test_loader=val_loader,opts=opts)
-                print('validation accuracy= %.3f '%(Accuracy))
                 if Accuracy > best_accuracy :
+                    eqn = '>'
+                
+                    msg = str(n_support)+'_shot_'+opts.model_id+"======>"+'At Epoch [{}]/[{}] \t\tCurrent Acc is {:.5f} {:s}  previous best Acc is {:.5f} '.format(epoch,
+                        max_epoch,Accuracy, eqn, best_accuracy)
                     best_accuracy = Accuracy
-                    best_model = model
-                    print('New model with validation accuracy= %.3f '%(best_accuracy))
-            model.train() 
+                    best_model_state_dict = model.state_dict()
+                else:
+                    eqn = '<'
+                
+                    msg = str(n_support)+'_shot_'+opts.model_id+"======>"+'At Epoch [{}]/[{}] \t\tCurrent Acc is {:.5f} {:s}  previous best Acc is {:.5f} '.format(epoch,
+                        max_epoch,Accuracy, eqn, best_accuracy)
+                model.enc_module.train()
+                logger(msg)
+        if sch is not None:
+                scheduler.step() 
         # l_class = l_class/opts.episodes_per_epoch_train
         # l_class.backward()
         # optimizer.step()
         # if len(sch) != 0:
         #         scheduler.step(counter)  
         if entropy:
-            print('[%d/%d] classification loss = %.3f and entropy = %.3f' %(epoch,max_epoch,lambdas[1]*l_class,lambdas[3]*l_open))
+            print(str(n_support)+'_shot_'+opts.model_id+"======>"+'[%d/%d]  classification loss = %.3f and entropy = %.3f' %(epoch,max_epoch,lambdas[1]*l_class,lambdas[3]*l_open))
+            
         else:
-            print('[%d/%d] classification loss = %.3f' %(epoch,max_epoch,l_class))
-    model.eval()
-    best_model.eval()
-    Accuracy1,_,_,_ = tester(model=model,device=device,test_loader=val_loader,opts=opts)
-    Accuracy2,_,_,_ = tester(model=best_model,device=device,test_loader=val_loader,opts=opts)
-    print('validation accuracy= %.3f for final model'%(Accuracy1))
-    print('validation accuracy= %.3f for best validation model'%(Accuracy2))
-    mdl = 2#input('choose model to continue 1 or 2:')
-    if int(mdl) == 2:
-      model = best_model
-       
-    for p in model.enc_module.parameters():
-           p.requires_grad = False
-
+            print(str(n_support)+'_shot_'+opts.model_id+"======>"+'[%d/%d]  classification loss = %.3f' %(epoch,max_epoch,lambdas[1]*l_class))
+            
+    model.load_state_dict(best_model_state_dict)
     
-    # optimizer = torch.optim.Adam(model.parameters(), lr=LR/10)
-    optimizer = torch.optim.Adam(list(model.dec_module.parameters())+list(model.nd_module.parameters()), lr=LR)
+    for n,p in model.named_parameters():
+          if 'dec_module' in n or 'nd_module' in n:
+            p.requires_grad = True
+          else:
+            p.requires_grad = False
+
+    param_dict = [
+            {'params': model.dec_module.parameters()},{'params': model.nd_module.parameters()}
+        ]
+       
+    
+    assert opts.lr_decoder is not None
+    optimizer = torch.optim.Adam(param_dict, lr=opts.lr_decoder,weight_decay=float(opts.weight_decay))
     # optimizer = torch.optim.SGD(list(model.dec_module.parameters())+list(model.nd_module.parameters()), lr=LR, momentum=0.9, nesterov=True)
     counter = 0
     best_auroc = 0
-    best_model = model
-    sch = opts.schedular
-    if len(sch) != 0:
-       scheduler = MultiStepLR(optimizer, milestones=sch, gamma=opts.lr_gamma)
+    best_model_state_dict = model.state_dict()
+    sch = sch
+    if sch is not None:
+       scheduler = StepLR(optimizer, sch, gamma=opts.lr_gamma)
+    
     model.train()
-    max_epoch = 1000;#max_epoch
     for epoch in range(1,max_epoch+1):
         for i,episode in enumerate(train_loader):
             optimizer.zero_grad()
@@ -187,20 +224,19 @@ def train(model,device,train_loader,val_loader,tester,opts):
                  query_x[k.item()] =  Qx_k
                  query_y[k.item()] =  Qy_k
                  ## embedding of support and reconstruction
-                 emb_support,mu,log_var,recon,tau = model(Dx_k)              
-                 emb_support = torch.flatten(emb_support,start_dim=1)
+                 emb_support,mu,log_var,recon,tau = model(Dx_k)       
                  symbolic_proto_k = proto_sym[train_y==k,:,:,:] 
                  # embedding of prototype symbol
-                 emb_proto_k,_,_,_,_ = model(symbolic_proto_k[0,:,:,:].unsqueeze(dim=0))
-                 emb_proto_k = torch.flatten(emb_proto_k,start_dim=1)                
+                 emb_proto_k,_,_,_,_ = model(symbolic_proto_k[0,:,:,:].unsqueeze(dim=0))            
                  # real image prototype
-                 # tmp = proto_rectifier(emb_support,emb_proto_k,euc=euc,wts=wts)
+                 tmp = proto_rectifier(emb_support,emb_proto_k,euc=euc,wts=wts)
 
                  #random prototype
-                 tmp = emb_support[torch.randperm(n_support)[0]].unsqueeze(dim=0)
+                 # tmp = emb_support[torch.randperm(n_support)[0]].unsqueeze(dim=0)
                  real_proto_k = torch.cat((real_proto_k,tmp),dim=0)# size should be C x embedding size, if not check
 
                  if(backbone == "MLP"):
+                    assert percept is not None
                     s = model.feat_extractor(symbolic_proto_k[:n_support,:,:,:])
                     l_vpe_s = l_vpe_s + loss_vpe(recon,s,mu,log_var,device,percept=percept,recon = recon_loss)
                  else:
@@ -257,21 +293,31 @@ def train(model,device,train_loader,val_loader,tester,opts):
             total_loss = lambdas[0]*l_vpe + lambdas[2]*l_nov
                      
             total_loss.backward()
-            optimizer.step()                        
-            counter = counter + 1             
-            if len(sch) != 0:
-               scheduler.step(counter)  
-            if counter % opts.val_check == 0 or counter == 1 or counter == max_epoch*len(train_loader):
+            optimizer.step()                  
+            counter = counter + 1    
+                     
+            
+            if counter % opts.val_check == 0  or counter == max_epoch*len(train_loader):
                 model.eval()
-                Accuracy,Au_ROC,_,_ = tester(model=model,device=device,test_loader=val_loader,opts=opts)
-                print('validation accuracy= %.3f and validation AuROC= %.3f'%(Accuracy,Au_ROC))
+                Accuracy,Au_ROC,Accuracy_std,Au_ROC_std = tester(model=model,device=device,test_loader=val_loader,opts=opts)
                 if Au_ROC > best_auroc :
-                    best_accuracy = Accuracy
-                    best_model = model
+                    eqn = '>'
+                
+                    msg = str(n_support)+'_shot_'+opts.model_id+"======>"+'At Epoch [{}]/[{}] \t\tCurrent Acc is {:.5f} + {:.5f} and current Auroc is {:.5f} + {:.5f} \
+                     {:s} previous best Auroc is {:.5f} '.format(epoch,max_epoch,Accuracy,Accuracy_std,Au_ROC,Au_ROC_std, eqn, best_auroc)
                     best_auroc = Au_ROC
-                    print('New model with validation accuracy= %.3f and validation AuROC= %.3f'%(best_accuracy,best_auroc))
-            model.train()
-        print('[%d/%d] recon loss = %.3f,novelty detection loss = %.3f'%(epoch,max_epoch,lambdas[0]*l_vpe,lambdas[2]*l_nov))
-    return model,best_model
+                    best_model_state_dict = model.state_dict()
+                else:
+                    eqn = '<'
+                
+                    msg = str(n_support)+'_shot_'+opts.model_id+"======>"+'At Epoch [{}]/[{}] \t\tCurrent Acc is {:.5f} + {:.5f} and current Auroc is {:.5f} + {:.5f} \
+                     {:s} previous best Auroc is {:.5f} '.format(epoch,max_epoch,Accuracy,Accuracy_std,Au_ROC,Au_ROC_std, eqn, best_auroc)
+                model.train()
+                logger(msg)
+        print(str(n_support)+'_shot_'+opts.model_id+"======>"+'[%d/%d] recon loss = %.3f,novelty detection loss = %.3f'\
+                %(epoch,max_epoch,lambdas[0]*l_vpe,lambdas[2]*l_nov))
+        if sch is not None:
+            scheduler.step()  
+    return model.state_dict(),best_model_state_dict
             
 

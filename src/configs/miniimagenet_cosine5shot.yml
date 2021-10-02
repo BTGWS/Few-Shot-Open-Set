@@ -1,11 +1,11 @@
 dataset: miniimagenet
-backbone: custom_resnet12 
+backbone: custom_resnet12
 metric: cosine 
 recon: l2 
 trainer_type: bifurcated 
 tester_type: bifurcated 
 emb_enhance: True 
-weighted_mean: False 
+weighted_mean: True 
 temperature: 1000.0 
 z_dim: 640
 ab_module_layers: [200, 100]
@@ -24,7 +24,7 @@ img_rows: 84
 schedular: 400
 rank: 1
 val_check: 10000
-model_id: cosine_resent12_temp1000_dpout0.1_nowtmn
+model_id: cosine_resent12_old_code
 #relnet
 clf_mode: cosine
 lr_decoder: 1e-3

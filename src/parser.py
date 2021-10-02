@@ -4,7 +4,7 @@ import yaml
 def get_args():
     parser = ArgumentParser(description='ReFOCS')
     parser.add_argument('--config',help='configuration file.*yml',type=str,required=False,default='miniimagenet.yml')
-    parser.add_argument('--seed',       type=int,   default=13,  help='Random seed')
+    parser.add_argument('--seed',       type=int,   default=42,  help='Random seed')
     parser.add_argument('--dataset',    type=str,   default='gtsrb', help='dataset to use [gtsrb, gtsrb2TT100K, belga2flickr, belga2toplogo, miniimagenet]')
     parser.add_argument('--exp',        type=str,   default='exp_list',     help='training scenario')
     parser.add_argument('--backbone',  type=str,   default='conv_layers',     help='backbone [conv_layers, MLP, resnet18, resnet12, resnet152, custom_resnet12]')

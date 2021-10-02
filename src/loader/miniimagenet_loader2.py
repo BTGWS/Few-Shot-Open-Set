@@ -150,7 +150,7 @@ class MiniImageNet(data.Dataset):
 
         if (self.phase=='test' or self.phase=='val') or (do_not_use_random_transf==True):
             self.transform = transforms.Compose([
-                transforms.RandomCrop(self.img_size, padding=8),
+                transforms.CenterCrop(self.img_size),
                 transforms.ToTensor()
             ])
             # self.transform = transforms.Compose([
@@ -159,15 +159,15 @@ class MiniImageNet(data.Dataset):
             # ])
         else:
             self.transform = transforms.Compose([
-                transforms.RandomCrop(self.img_size, padding=8),
-                transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4),
+                transforms.CenterCrop(self.img_size),
+                transforms.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1,hue=0.1),
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor()
             ])
             
     def __getitem__(self, index):
         img, label = self.data[index], self.labels[index]
-        template = Image.open(self.data_path+ 'templates/'+self.phase+'/class_tensor('+str(label)+')')
+        template = Image.open(self.data_path+ 'templates2/'+self.phase+'/class_tensor('+str(label)+')')
         # doing this so that it is consistent with all other datasets
         # to return a PIL Image
         # print(label)

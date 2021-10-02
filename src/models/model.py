@@ -35,7 +35,7 @@ class Encoder(nn.Module):
 
         if(self.backbone == 'resnet18'):
             block = BasicBlockEnc
-            self.embed = ResNet18Enc(block, layers, norm_layer=norm_layer,z_dim=z_dim, branch=branch)
+            self.embed = ResNet18Enc(block, layers, norm_layer=norm_layer,z_dim=z_dim, branch=branch,tau=temperature)
         elif(self.backbone == 'resnet12'):
             # print(self.backbone)
             block = BasicBlockEnc
@@ -141,14 +141,14 @@ class Ab_module(nn.Module):
         detector.append(nn.Linear(layers[h],1))
         detector.append(nn.Sigmoid())
         self.detector = nn.Sequential( *detector )
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                n = m.weight.size(1)
-                m.weight.data.normal_(0, 0.01)
-                m.bias.data = torch.ones(m.bias.data.size())
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
+        # for m in self.modules():
+        #     if isinstance(m, nn.Linear):
+        #         n = m.weight.size(1)
+        #         m.weight.data.normal_(0, 0.01)
+        #         m.bias.data = torch.ones(m.bias.data.size())
+        #     elif isinstance(m, nn.BatchNorm2d):
+        #         nn.init.constant_(m.weight, 1)
+        #         nn.init.constant_(m.bias, 0)
     def forward(self,x):
         out = self.detector(x)
         return out

@@ -37,7 +37,7 @@ def train(model,device,train_loader,val_loader,tester,opts):
 
     
 
-    if opts.clf_mode == 'rel_net':
+    if 'rel_net' in opts.clf_mode:
 
         for n,p in model.named_parameters():
           if 'classifier' in n or 'enc_module' in n:
@@ -124,7 +124,7 @@ def train(model,device,train_loader,val_loader,tester,opts):
             
             optimizer.zero_grad()
             l_clf.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
+            # torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
             optimizer.step() 
             
             counter = counter + 1 
@@ -147,7 +147,6 @@ def train(model,device,train_loader,val_loader,tester,opts):
                         max_epoch,Accuracy, eqn, best_accuracy)
                 model.train()
                 logger(msg)
-                model.train()
         if sch is not None:
                 scheduler.step() 
     
@@ -261,7 +260,7 @@ def train(model,device,train_loader,val_loader,tester,opts):
             total_loss = lambdas[0]*l_vpe + lambdas[2]*l_nov
             optimizer.zero_grad()         
             total_loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
+            # torch.nn.utils.clip_grad_norm_(model.parameters(), 1)
             optimizer.step()  
 
             counter = counter + 1    
@@ -285,7 +284,6 @@ def train(model,device,train_loader,val_loader,tester,opts):
                      {:s} previous best Auroc is {:.5f} '.format(epoch,max_epoch,Accuracy,Accuracy_std,Au_ROC,Au_ROC_std, eqn, best_auroc)
                 model.train()
                 logger(msg)
-                model.train()
         if sch is not None:
             scheduler.step(counter)  
     return model.state_dict(),best_model_state_dict

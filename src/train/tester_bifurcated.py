@@ -3,7 +3,7 @@ import torch.nn as nn
 import torchvision
 import sys
 import numpy as np
-from train.train_utils import *
+from train.train_utils2 import *
 from models.model import *
 from sklearn import metrics
 import scipy.stats as st
@@ -53,29 +53,27 @@ def tester(model,device,test_loader,opts):
                  query_x[k.item()] =  Qx_k
                  query_y[k.item()] =  Qy_k
                  ## embedding of support and reconstruction
-                 emb_support,_,_,_,_ = model(Dx_k)          
-                 emb_support = torch.flatten(emb_support,start_dim=1)                 
+                 emb_support,_,_,_,_ = model(Dx_k)                        
                  tmp = proto_rectifier(emb_support,emb_support,euc=euc,wts=False)    #non weighted centroid
                  d = ((emb_support - tmp)**2).sum(dim=1)
 
 
-                 # _,min_idx = torch.min(d,dim=0)
-                 # symbolic_proto_k = Dx_k[min_idx,:,:,:]
+                 _,min_idx = torch.min(d,dim=0)
+                 symbolic_proto_k = Dx_k[min_idx,:,:,:]
 
                  ## for random part only
-                 min_idx = torch.randperm(n_support)[0]
-                 symbolic_proto_k = Dx_k[min_idx,:,:,:]
+                 # min_idx = torch.randperm(n_support)[0]
+                 # symbolic_proto_k = Dx_k[min_idx,:,:,:]
                  # embedding of prototype symbol
                  emb_proto_k,_,_,_,_ = model(symbolic_proto_k.unsqueeze(dim=0))
-                 emb_proto_k = torch.flatten(emb_proto_k,start_dim=1)
                  all_sym_protos = torch.cat((all_sym_protos,symbolic_proto_k.unsqueeze(dim=0)),dim=0)
                  all_sym_proto_embs = torch.cat((all_sym_protos_embs,emb_proto_k),dim=0)
                  # real image prototype
 
-                 # tmp = proto_rectifier(emb_support,emb_proto_k,euc=euc,wts=wts)
+                 tmp = proto_rectifier(emb_support,emb_proto_k,euc=euc,wts=wts)
 
                  # random prototype
-                 tmp = emb_support[torch.randperm(n_support)[0]].unsqueeze(dim=0)
+                 # tmp = emb_support[torch.randperm(n_support)[0]].unsqueeze(dim=0)
                  real_proto_k = torch.cat((real_proto_k,tmp),dim=0)# size should be Nc x embedding size, if not check
                  
             ## classification and novelty detection
@@ -117,7 +115,7 @@ def tester(model,device,test_loader,opts):
             Au_ROC[i] = (metrics.auc(fpr, tpr))
             Accuracy[i] = (Acc/classes.shape[0] )
             total_count = total_count + 1 
-        print(' max test accuracy = %.6f  and AuROC =  %.6f '%(np.max(Accuracy),np.max(Au_ROC)))
+        
 
         Au_ROC_mean = np.mean(Au_ROC)
         Accuracy_mean = np.mean(Accuracy)

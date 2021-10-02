@@ -7,6 +7,7 @@ import math
 import os
 from pathlib import Path
 from PIL import Image
+import time
 import torch
 from torch import optim
 from torch import nn
@@ -18,13 +19,14 @@ from torchvision import datasets, transforms
 from parser import get_args
 from loader import get_loader, get_data_path
 from datasets.augmentations import *
-from datasets.sampler import *
+# from datasets.sampler import ProtoBatchSampler 
+from datasets.sampler2 import ProtoBatchSampler 
 # from datasets.few_shot_loader import FewShotDataloader
 # from tqdm import tqdm
 from models.model import *
 from train import get_trainer,get_tester
-from train.train_utils import *
-from train.pretrainer import *
+# from train.train_utils2 import *
+# from train.pretrainer import *
 # Setup
 
 args = get_args()
@@ -108,7 +110,8 @@ testloader = DataLoader(te_loader, batch_sampler=te_sampler, num_workers=args.wo
 #         num_workers=0,
 #         epoch_size=args.episodes_test )
 
-# data = next(iter(trainloader))
+
+
 
 if(args.backbone == 'MLP'):
   ab_inp_size = args.mlp_hid_layers[-1] + 2*args.n
@@ -133,8 +136,18 @@ else:
       hid_dim=args.conv_hid_layers,enc_conv_filters=args.enc_conv_filters,dec_conv_filters=args.dec_conv_filters,linear = args.linear_embedding,
   		linear_inp_siz=args.linear_embedding_size,stride=args.enc_stride,outsize=[args.img_cols, args.img_rows], ab_layers = args.ab_module_layers,
       z_dim=args.z_dim, stn=stn,temperature=args.temperature,clf_mode=args.clf_mode)
-# model = nn.DataParallel(model)
+# s = []
+# for n,p in model.named_parameters():
+#   s.append(p.numel())
 
+# print(sum(s))
+# model.to(device)
+# f = torch.randn(175,3,84,84).to(device)
+# g = torch.randn(175,3,84,84).to(device)
+# q = model(f)
+# for qq in q:
+#   print(qq.shape)
+# time.sleep(120)
 # if args.pretrain:
 #   m = '/home/snag005/Desktop/fs_ood/trial2/models/miniimagenet/pretrain/adam_200_18_lr1e3'
 #   net = torch.load(m)

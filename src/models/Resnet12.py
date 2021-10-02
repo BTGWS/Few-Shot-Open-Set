@@ -253,7 +253,7 @@ class ResNetDec(nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
-        x = torch.tanh(self.resize(x))
+        x = torch.sigmoid(self.resize(x))
         x = x.view(x.size(0), 3, self.outsize[0], self.outsize[1])
         return x
         

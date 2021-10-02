@@ -17,7 +17,6 @@ class ResizeConv2d(nn.Module):
     def forward(self, x):
         if self.final:
             x = F.interpolate(x, size=self.outsize, mode=self.mode)
-            print('---------',x.shape)
         else:
             x = F.interpolate(x, scale_factor=self.scale_factor, mode=self.mode)
 
@@ -72,7 +71,7 @@ class BasicBlockEnc(nn.Module):
 
 class ResNet18Enc(nn.Module):
 
-    def __init__(self, block, layers, norm_layer=None,z_dim=512, branch=False):
+    def __init__(self, block, layers, norm_layer=None,z_dim=512, branch=False,tau=1000.0):
         super(ResNet18Enc, self).__init__()
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
@@ -89,23 +88,24 @@ class ResNet18Enc(nn.Module):
         self.layer1 = self._make_layer(block, 64, layers[0])
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2)
-        self.layer4_0 = self._make_layer(block, 512, layers[3], stride=2)
+        self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
+        self.avgpool = nn.AvgPool2d(2, stride=1)
         # self.avg_pool0 = torch.nn.AdaptiveAvgPool2d(1)
-        self.linear0 = nn.Sequential(conv1x1(512, z_dim//(2*2), stride=2))
+        self.linear0 = nn.Sequential(conv1x1(512, z_dim, stride=2))
         # self.linear01 = nn.Sequential(conv1x1(512, z_dim, stride=2))
         if branch:
-            self.inplanes = 256 * block.expansion
-            self.layer4_1 = self._make_layer(block, 512, layers[3], stride=2)
+            # self.inplanes = 256 * block.expansion
+            # self.layer4_1 = self._make_layer(block, 512, layers[3], stride=2)
             # self.avg_pool1 = torch.nn.AdaptiveAvgPool2d(1)
-            self.linear1 = nn.Sequential(conv1x1(512, z_dim//(2*2), stride=2))
+            self.linear1 = nn.Sequential(conv1x1(512, z_dim, stride=2))
             # self.linear11 = nn.Sequential(conv1x1(512, z_dim, stride=2))
-        self.tau = nn.Parameter(torch.tensor(1000.0))
-        # for m in self.modules():
-        #     if isinstance(m, nn.Conv2d):
-        #         nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-        #     elif isinstance(m, (nn.InstanceNorm2d, nn.GroupNorm)):
-        #         nn.init.constant_(m.weight, 1)
-        #         nn.init.constant_(m.bias, 0)
+        self.tau = nn.Parameter(torch.tensor(tau))
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(m, (nn.InstanceNorm2d, nn.GroupNorm)):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
 
     def _make_layer(self, block, planes, blocks, stride=1):
         norm_layer = self._norm_layer
@@ -138,10 +138,10 @@ class ResNet18Enc(nn.Module):
         
         x = self.layer3(x)
         
-        x = self.layer4_0(x)
-        
+        x = self.layer4(x)
+        # 
         mu = self.linear0(x) 
-
+        mu = self.avgpool(mu)
         tau = self.tau
         # mu = mu.view(mu.size(0), -1)  
         # mu = mu.unsqueeze(2)
@@ -150,12 +150,13 @@ class ResNet18Enc(nn.Module):
         # mu = self.linear01(mu)   
         # mu = self.linear0(mu)
         if self.branch:
-            # sig = self.layer4_1(x) 
+            sig = self.linear1(x)
+            sig = self.avgpool(sig)
             # sig = sig.view(sig.size(0), -1)  
             # sig = sig.unsqueeze(2)
             # sig = sig.unsqueeze(3)  
             # sig = self.linear10(sig)
-            sig = self.linear1(x) 
+            # sig = self.linear1(x) 
             # sig = sig.view(sig.size(0),-1)
             # sig = self.avg_pool0(sig)   
             # sig = self.linear1(sig)
@@ -193,15 +194,13 @@ class BasicBlockDec(nn.Module):
         out = self.bn1(self.conv1(out))
         out += self.shortcut(x)
         out = torch.nn.functional.relu(out)
-        print(out.shape)
-        print('---------------')
         return out
 
 
 class ResNet18Dec(nn.Module):
 
     def __init__(self, num_Blocks=[2,2,2,2], outsize=[84,84], z_dim=2048,  nc=3):
-        super().__init__()
+        super(ResNet18Dec,self).__init__()
         self.in_planes = z_dim
         self.outsize = outsize
 
@@ -212,6 +211,10 @@ class ResNet18Dec(nn.Module):
         self.layer2 = self._make_layer(BasicBlockDec, 64, num_Blocks[1], stride=2)
         self.layer1 = self._make_layer(BasicBlockDec, 64, num_Blocks[0], stride=1)
         self.conv1 = ResizeConv2d(64, nc, kernel_size=3, final=True,outsize=self.outsize)
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            
 
     def _make_layer(self, BasicBlockDec, planes, num_Blocks, stride):
         strides = [stride] + [1]*(num_Blocks-1)
@@ -221,10 +224,10 @@ class ResNet18Dec(nn.Module):
         self.in_planes = planes
         return nn.Sequential(*layers)
 
-    def forward(self, z):
-        x = z.view((z.size(0), -1))
-        x = self.linear(x)
-        x = x.view(z.size(0), 512, 1, 1)
+    def forward(self, x):
+        x = x.view((x.size(0), -1))
+        x = F.relu(self.linear(x))
+        x = x.view(x.size(0), 512, 1, 1)
         x = F.interpolate(x, scale_factor=4)
         x = self.layer4(x)
         x = self.layer3(x)

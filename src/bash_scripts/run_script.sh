@@ -16,4 +16,4 @@
  
 # Place any commands you want to run below
 conda activate py37
-CUDA_VISIBLE_DEVICES=0 python main.py --config miniimagenet_cosine5shot.yml
+CUDA_VISIBLE_DEVICES=0 python main.py --config miniimagenet_cosine1shot.yml
